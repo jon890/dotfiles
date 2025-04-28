@@ -12,3 +12,9 @@ if [ -d "${ZDOTDIR:-$HOME}/.zshrc.d" ]; then
   done
 fi
 
+
+# alias
+alias docker-compose="docker compose"
+alias ls="eza"
+alias top="zenith"
+alias cat="bat"
