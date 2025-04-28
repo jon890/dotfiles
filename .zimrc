@@ -1,0 +1,34 @@
+# Zim configuration file
+# See: https://github.com/zimfw/zimfw/wiki/Configuration
+
+# 모듈 설정
+zmodules=(
+  # 기본 모듈
+  environment
+  input
+  termtitle
+  utility
+  completion
+  syntax
+  history
+  directory
+  spectrum
+  prompt
+  git
+  ssh
+  docker
+  node
+  python
+  ruby
+  rust
+  golang
+  java
+  fzf
+  fzf-tab
+  exa
+  zoxide
+  # 추가 플러그인
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+  zsh-history-substring-search
+) 
