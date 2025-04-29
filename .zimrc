@@ -1,7 +1,22 @@
 # Zim configuration file
 # See: https://github.com/zimfw/zimfw/wiki/Configuration
 
-# 추가 플러그인
+#
+# Modules
+#
+
+zmodule environment
+zmodule input
+zmodule termtitle
+zmodule utility
+zmodule completion
+zmodule syntax
+zmodule history
+
+zmodule duration-info
+zmodule git-info`
+
+# Plugins
 zmodule zsh-users/zsh-autosuggestions
 zmodule zsh-users/zsh-syntax-highlighting
 zmodule zsh-users/zsh-history-substring-search
