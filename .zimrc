@@ -14,7 +14,6 @@ zmodule syntax
 zmodule history
 
 zmodule duration-info
-zmodule git-info
 
 # Plugins
 zmodule zsh-users/zsh-autosuggestions
