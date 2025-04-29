@@ -12,8 +12,7 @@ zmodule completion
 
 # Prompt 설정
 zmodule prompt
-zstyle ':zim:prompt' theme 'asciiship'
-zstyle ':zim:prompt' git 'yes'
+prompt asciiship
 
 zmodule asciiship
 zmodule duration-info
