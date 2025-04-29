@@ -12,8 +12,11 @@ if [ -d "${ZDOTDIR:-$HOME}/.zshrc.d" ]; then
   done
 fi
 
-
 # alias
 alias ls="eza"
 alias top="zenith"
 alias cat="bat"
+
+# intellij terminal 한글 깨짐 수정
+export LANG=ko_KR.UTF-8
+export LC_ALL=ko_KR.UTF-8
