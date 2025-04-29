@@ -11,9 +11,11 @@ zmodule utility
 zmodule completion
 zmodule history
 
+zmodule asciiship
 zmodule duration-info
 
 # Plugins
+zmodule zsh-users/zsh-completions --fpath src
 zmodule zsh-users/zsh-autosuggestions
 zmodule zsh-users/zsh-syntax-highlighting
 zmodule zsh-users/zsh-history-substring-search
