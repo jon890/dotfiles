@@ -9,13 +9,11 @@ zmodule environment
 zmodule input
 zmodule utility
 zmodule completion
-
-# Prompt 설정
 zmodule prompt
-prompt asciiship
 
-zmodule asciiship
+zmodule git-info
 zmodule duration-info
+zmodule asciiship
 
 # Plugins
 zmodule zsh-users/zsh-completions --fpath src
