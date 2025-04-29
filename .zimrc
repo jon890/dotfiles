@@ -10,6 +10,11 @@ zmodule input
 zmodule utility
 zmodule completion
 
+# Prompt 설정
+zmodule prompt
+zstyle ':zim:prompt' theme 'asciiship'
+zstyle ':zim:prompt' git 'yes'
+
 zmodule asciiship
 zmodule duration-info
 
