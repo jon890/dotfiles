@@ -20,3 +20,8 @@ alias cat="bat"
 # intellij terminal 한글 깨짐 수정
 export LANG=ko_KR.UTF-8
 export LC_ALL=ko_KR.UTF-8
+
+# Run fastfetch on terminal startup only if it's installed
+if command -v fastfetch >/dev/null 2>&1; then
+  fastfetch
+fi
