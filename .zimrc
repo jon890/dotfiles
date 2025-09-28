@@ -1,0 +1,22 @@
+# Zim configuration file
+# See: https://github.com/zimfw/zimfw/wiki/Configuration
+
+#
+# Modules
+#
+
+zmodule environment
+zmodule input
+zmodule utility
+zmodule completion
+zmodule prompt
+
+zmodule git-info
+zmodule duration-info
+zmodule asciiship
+
+# Plugins
+zmodule zsh-users/zsh-completions --fpath src
+zmodule zsh-users/zsh-autosuggestions
+zmodule zsh-users/zsh-syntax-highlighting
+zmodule zsh-users/zsh-history-substring-search

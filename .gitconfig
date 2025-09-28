@@ -1,0 +1,10 @@
+[user]
+    name = bifos
+    email = bifos@nhn.com
+[push]
+    autoSetupRemote = true
+
+[includeIf "gitdir:~/personal/"]
+    path = ~/.gitconfig-personal
+[includeIf "gitdir:/Users/kbt/"]
+    path = ~/.gitconfig-personal

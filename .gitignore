@@ -1,0 +1,26 @@
+# 기본적으로 모든 파일과 폴더를 무시
+*
+
+# git으로 관리할 파일들만 예외 처리
+!.bashrc
+!.default-cargo-crates
+!.gitconfig
+!.gitconfig-personal
+!.gitignore
+!.zimrc
+!.zshrc
+!.tool-versions
+!README.md
+
+# SSH 설정 파일
+!.ssh/
+.ssh/*
+!.ssh/config
+
+# zsh 설정 디렉토리
+!.zshrc.d/
+.zshrc.d/*
+!.zshrc.d/asdf.sh
+!.zshrc.d/zim.sh
+!.zshrc.d/zoxide.sh
+!.zshrc.d/ssh.sh
