@@ -32,4 +32,13 @@ export LC_ALL=ko_KR.UTF-8
 # Run fastfetch on terminal startup only if it's installed
 if command -v fastfetch >/dev/null 2>&1; then
   fastfetch
+fi
+
+# zoxide 초기화 (반드시 마지막에 위치해야 함)
+if (( ${+commands[zoxide]} )); then
+  eval "$(zoxide init zsh)"
+  
+  # zoxide 별칭 설정
+  alias cd="z"
+  alias cdi="zi"
 fi 
