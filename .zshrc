@@ -42,3 +42,5 @@ if (( ${+commands[zoxide]} )); then
   alias cd="z"
   alias cdi="zi"
 fi 
+
+export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"

@@ -24,3 +24,4 @@
 !.zshrc.d/zim.sh
 !.zshrc.d/zoxide.sh
 !.zshrc.d/ssh.sh
+!.testcontainers.properties
