@@ -24,4 +24,5 @@
 !.zshrc.d/zim.sh
 !.zshrc.d/zoxide.sh
 !.zshrc.d/ssh.sh
+!.zshrc.d/zz-kube-ps1.sh
 !.testcontainers.properties
