@@ -6,7 +6,5 @@
 
 [includeIf "gitdir:~/personal/"]
     path = ~/.gitconfig-personal
-[includeIf "gitdir:/Users/kbt/"]
-    path = ~/.gitconfig-personal
 [includeIf "gitdir:/Users/nhn/projects/"]
     path = ~/.gitconfig-work
