@@ -19,7 +19,7 @@
 # zsh 설정 디렉토리
 !.zshrc.d/
 .zshrc.d/*
-!.zshrc.d/asdf.sh
+!.zshrc.d/mise.sh
 !.zshrc.d/zim.sh
 !.zshrc.d/zoxide.sh
 !.zshrc.d/ssh.sh
