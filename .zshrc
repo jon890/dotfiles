@@ -38,14 +38,14 @@ export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
 export PATH="$HOME/.local/bin:$PATH"
 
 # bun completions
-[ -s "/Users/nhn/.bun/_bun" ] && source "/Users/nhn/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # pnpm
-export PNPM_HOME="/Users/nhn/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
