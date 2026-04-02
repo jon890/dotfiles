@@ -34,13 +34,29 @@ if command -v fastfetch >/dev/null 2>&1; then
   fastfetch
 fi
 
+export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
+export PATH="$HOME/.local/bin:$PATH"
+
+# bun completions
+[ -s "/Users/nhn/.bun/_bun" ] && source "/Users/nhn/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# pnpm
+export PNPM_HOME="/Users/nhn/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+
 # zoxide 초기화 (반드시 마지막에 위치해야 함)
 if (( ${+commands[zoxide]} )); then
   eval "$(zoxide init zsh)"
-  
+
   # zoxide 별칭 설정
   alias cd="z"
   alias cdi="zi"
-fi 
-
-export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
+fi
