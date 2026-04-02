@@ -1,4 +1,6 @@
 # asdf 설정
-if [ -f "$(brew --prefix asdf)/libexec/asdf.sh" ]; then
-  . "$(brew --prefix asdf)/libexec/asdf.sh"
-fi 
+_asdf_prefix="/opt/homebrew/opt/asdf"
+if [ -f "${_asdf_prefix}/libexec/asdf.sh" ]; then
+  . "${_asdf_prefix}/libexec/asdf.sh"
+fi
+unset _asdf_prefix

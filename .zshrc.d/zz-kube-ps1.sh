@@ -1,6 +1,6 @@
 # kube-ps1: kubectl context/namespace 프롬프트 표시
-if [[ -f "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh" ]]; then
-  source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
+if (( ${+commands[brew]} )) && [[ -f "$(brew --prefix kube-ps1 2>/dev/null)/share/kube-ps1.sh" ]]; then
+  source "$(brew --prefix kube-ps1)/share/kube-ps1.sh"
 
   # 스타일 설정
   KUBE_PS1_SYMBOL_ENABLE=true
