@@ -1,0 +1,8 @@
+[tools]
+pnpm = "latest"
+"cargo:bat" = "latest"
+"cargo:eza" = "latest"
+"cargo:ripgrep" = "latest"
+"cargo:difftastic" = "latest"
+"cargo:zenith" = "latest"
+"cargo:zoxide" = "latest"

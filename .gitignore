@@ -3,7 +3,6 @@
 
 # git으로 관리할 파일들만 예외 처리
 !.bashrc
-!.default-cargo-crates
 !.gitconfig
 !.gitconfig-personal
 !.gitignore
@@ -25,3 +24,17 @@
 !.zshrc.d/ssh.sh
 !.zshrc.d/zz-kube-ps1.sh
 !.testcontainers.properties
+
+# XDG config
+!.config/
+.config/*
+
+# mise 설정
+!.config/mise/
+.config/mise/*
+!.config/mise/config.toml
+
+# ghostty 설정
+!.config/ghostty/
+.config/ghostty/*
+!.config/ghostty/config
