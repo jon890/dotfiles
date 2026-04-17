@@ -54,6 +54,9 @@ esac
 
 # zoxide 초기화 (반드시 마지막에 위치해야 함)
 if (( ${+commands[zoxide]} )); then
+  # zoxide는 .zshrc 최하단에서 초기화되지만, .zshrc.d/ 내 zim/kube-ps1이
+  # 먼저 로드되면서 _ZO_DOCTOR 오탐이 발생하므로 진단 비활성화
+  export _ZO_DOCTOR=0
   eval "$(zoxide init zsh)"
 
   # zoxide 별칭 설정
