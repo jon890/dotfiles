@@ -186,7 +186,7 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침. 프
 
 ---
 
-본 원칙이 작동하는 신호: 변경 diff 에서 불필요한 변경이 줄고, 과복잡으로 인한 재작성이 줄고, 명확화 질문이 실수 이후가 아니라 구현 이전에 나온다. (원문: <https://github.com/forrestchang/andrej-karpathy-skills/blob/main/CLAUDE.md>)
+본 원칙이 작동하는 신호: 변경 diff 에서 불필요한 변경이 줄고, 과복잡으로 인한 재작성이 줄고, 명확화 질문이 실수 이후가 아니라 구현 이전에 나온다.
 
 ## General Rules
 
