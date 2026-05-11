@@ -38,3 +38,11 @@
 !.config/ghostty/
 .config/ghostty/*
 !.config/ghostty/config
+
+# Claude Code 전역 instruction
+!.claude/
+.claude/*
+!.claude/CLAUDE.md
+!.claude/rules/
+.claude/rules/*
+!.claude/rules/*.md
