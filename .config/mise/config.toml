@@ -1,4 +1,9 @@
 [tools]
+node = "24.15.0"
+java = "temurin-21.0.11+10"
+rust = "1.95.0"
+maven = "3.9.15"
+python = "3.14.5"
 pnpm = "latest"
 "cargo:bat" = "latest"
 "cargo:eza" = "latest"
