@@ -215,3 +215,22 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침. 프
 | 게이트 (gate) | 점검, 사전 점검, 통과 조건 |
 
 위에 없는 외래어·전문용어도 같은 원칙으로 한국어로 바꾼다. 판단 애매하면 사용자에게 묻는다.
+
+### AskUserQuestion 한국어 표기 — native UTF-8 강제
+
+`AskUserQuestion` 도구 호출 시 한국어 텍스트 (`question` / `header` / `label` / `description`) 는 **반드시 native UTF-8 character** 로 작성한다. `\uXXXX` Unicode escape sequence 로 인코딩하지 않는다.
+
+**이유**:
+- JSON spec 은 native UTF-8 을 그대로 허용 — `\u` escape 는 ASCII-only 호환을 위한 옵션이지 필수 아님
+- escape 로 인코딩하면 character 단위 오타가 누적되어 사용자 화면에 깨진 한글로 표시될 위험. 실측 사례: "근데 이게 제일 일순위 일은 아닌거 같은데" → "근데 이게 제일 일시 명을 아닌거 같은데" 로 깨짐
+- 다른 도구 (Edit / Write / Bash) 는 native 로 쓰고 있어 일관성 측면에서도 native 가 정답
+
+**위반 (금지)** — 한국어 character 를 `\\u` + 16진수 4자리 escape 로 인코딩하는 방식 (예: 한국어 "일반" 을 `\\uc77c\\ubc18` 로 표현). JSON spec 은 허용하지만 character 단위로 손으로 매핑하면서 오타 누적.
+
+**권장 (native)** — UTF-8 그대로 작성:
+
+```json
+{"label": "일반적인 압박", "description": "면접관이 압박 용 질문을 던집니다"}
+```
+
+**자가 점검**: AskUserQuestion 호출 직전 JSON payload 에 `\u` 가 보이면 native 로 변환 후 보낸다. 영문 기술 용어 (예: `Spring`, `JPA`) 는 그대로 둔다.
