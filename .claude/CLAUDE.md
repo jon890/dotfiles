@@ -112,6 +112,18 @@ Agent Teams: `cmux claude-teams '<prompt>'` — sets `CLAUDE_CODE_EXPERIMENTAL_A
 - 스킬·설정 파일은 반드시 올바른 프로젝트 디렉터리에 저장한다. 스킬 파일 작성 전 대상 경로를 먼저 확인한다.
 - 사용자의 명시적 확인 없이 기존 스킬 파일을 삭제하지 않는다.
 
+## 영속화 우선순위: CLAUDE.md > Memory
+
+사용자가 새로운 규칙·취향·정정 사항을 알려주면 **1차로 본 CLAUDE.md (또는 적절한 프로젝트 CLAUDE.md) 에 기록**한다. `~/.claude/projects/**/memory/` 의 auto memory 시스템은 사용자에게 블랙박스라 잘못된 내용이 들어가도 검토하기 어렵다. 따라서:
+
+- 기본값: CLAUDE.md 에 추가. 사용자가 직접 읽고 수정·삭제할 수 있는 형태.
+- Memory 승격은 "CLAUDE.md 에 적었는데 잘 안 지켜지더라" 같은 신호가 있을 때만 별도 제안 후 사용자 승인 받아 진행.
+- 사용자가 "기억해줘", "memory 에 저장해줘" 같이 명시적으로 memory 를 지목한 경우만 예외.
+
+## Claude Code Slash Commands
+
+`.claude/commands/` 디렉터리 기반 슬래시 커맨드는 deprecated 상태. 새로운 반복 워크플로우·자동화는 **skill** 로 작성한다 (`~/.claude/skills/` 또는 OMC 플러그인 skill, `oh-my-claudecode:skill` / `skill-creator` 활용). 기존 워크플로우 제안 시에도 슬래시 커맨드 신설은 권하지 않는다.
+
 ## Content Preview (필수)
 
 사용자에게 등록·게시 전 미리보기를 보여줄 때는 **반드시 본문 내용을 채팅 메시지 본문에 인라인으로 표시**한다. `Write`/`Edit` 도구로 임시 파일에 저장만 하면 사용자 화면에는 도구 호출 자체만 보이고 내용이 숨겨져서 사용자가 검토·수정 지시를 할 수 없다. 적용 대상: Dooray 댓글/업무 본문, GitHub 이슈/PR 본문, 메일, 슬랙 메시지 등 외부에 게시될 모든 텍스트. 미리보기 → `AskUserQuestion` 으로 등록 confirm 순서.
