@@ -7,11 +7,12 @@ You are running with oh-my-claudecode (OMC), a multi-agent orchestration layer f
 Coordinate specialized agents, tools, and skills so work is completed accurately and efficiently.
 
 <operating_principles>
+
 - Delegate specialized work to the most appropriate agent.
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
 - Consult official docs before implementing with SDKs/frameworks/APIs.
-</operating_principles>
+  </operating_principles>
 
 <delegation_rules>
 Delegate for: multi-file changes, refactors, debugging, reviews, planning, research, verification.
@@ -92,6 +93,7 @@ This environment runs on **cmux** (not plain tmux). Rules file: `~/.claude/rules
 **Use cmux CLI instead of tmux when manually controlling the terminal.**
 
 Detection pattern:
+
 ```bash
 if command -v cmux &>/dev/null && [ -n "$CMUX_WORKSPACE_ID" ]; then
   cmux new-split right && cmux send --surface surface:2 "cmd\n"
@@ -106,6 +108,41 @@ Agent Teams: `cmux claude-teams '<prompt>'` — sets `CLAUDE_CODE_EXPERIMENTAL_A
 
 **Note:** OMC `/team` and `/omc-teams` internally call `execFile('tmux', ...)` — tmux binary must remain installed separately. Use cmux only for manual terminal operations.
 </cmux_environment>
+
+## 백그라운드 작업 대기 (sleep 금지)
+
+`sleep N; <확인>` 패턴으로 백그라운드 작업 완료를 기다리지 않는다.
+harness 가 `sleep` 선행 패턴을 차단하므로 처음부터 올바른 도구를 쓴다.
+
+- **완료 대기** (한 번 알림): `run_in_background: true` 로 실행 → 완료 시 자동 알림.
+- **조건 폴링** (반복 확인): `Monitor` 의 until-loop (`until <조건>; do sleep N; done`) → 조건 충족 시 알림.
+- 배포·빌드·큐 비우기 등 외부 상태 대기는 모두 위 둘 중 하나로.
+
+## 스킬 피드백 루프 (사용 후 자동 회고)
+
+스킬 실행이 완료되면 **자동으로 회고 단계**를 거쳐 스킬을 개선한다.
+
+### 흐름
+
+1. 스킬 실행 완료 시점에 사용자에게 `AskUserQuestion`으로 피드백을 묻는다.
+   - "이 스킬 실행에서 문제가 있었거나 개선할 점이 있나요?"
+   - 선택지: "문제 없음" / "개선 필요" / "버그 있었음"
+2. "개선 필요" 또는 "버그 있었음" 선택 시 상세 내용을 받는다.
+3. 피드백 내용을 해당 스킬 파일(`SKILL.md`)에 직접 반영한다.
+   - 명령어 오류 → 스킬 문서의 명령 수정
+   - 빠진 단계 → 흐름에 단계 추가
+   - 불필요한 단계 → 제거 또는 선택적으로 변경
+
+### 적용 대상
+
+모든 프로젝트 스킬에 적용한다.
+사용자가 "문제 없음"을 선택하면 스킬 수정 없이 종료한다.
+
+### 피드백 반영 원칙
+
+- 스킬 파일을 직접 수정한다 (별도 문서 생성 금지).
+- 수정 후 commit + push한다 (스킬 변경도 코드 변경과 동일하게 추적).
+- 같은 피드백이 2회 이상 반복되면 해당 패턴을 `_shared/common-pitfalls.md`에도 추가한다.
 
 ## File Operations
 
@@ -131,6 +168,7 @@ Agent Teams: `cmux claude-teams '<prompt>'` — sets `CLAUDE_CODE_EXPERIMENTAL_A
 `.claude/commands/` 디렉터리 기반 슬래시 커맨드는 **deprecated**.
 
 대안:
+
 - 새로운 반복 워크플로우·자동화는 **skill** 로 작성
 - 작성 위치: `~/.claude/skills/` 또는 OMC 플러그인 skill
 - 도구: `oh-my-claudecode:skill` / `skill-creator`
@@ -145,12 +183,21 @@ Agent Teams: `cmux claude-teams '<prompt>'` — sets `CLAUDE_CODE_EXPERIMENTAL_A
 `Write`/`Edit` 도구로 임시 파일에 저장만 하면 사용자 화면에는 도구 호출 자체만 보이고 내용이 숨겨져서 사용자가 검토·수정 지시를 할 수 없다.
 
 적용 대상:
+
 - Dooray 댓글/업무 본문
 - GitHub 이슈/PR 본문
 - 메일·슬랙 메시지
 - 외부에 게시될 모든 텍스트
 
-순서: 미리보기 → `AskUserQuestion` 으로 등록 confirm.
+순서: **본문 작성 → 자가 점검 → 미리보기 → `AskUserQuestion` 으로 등록 confirm.**
+
+자가 점검 (의무, 미리보기 직전 통과):
+
+- [`### 마크다운 가독성`](#마크다운-가독성-사람ai-공동-가독) 의 8가지 규칙 본문 적용 여부
+- 같은 섹션의 4가지 자가 점검 항목 (`+ / · / &` 인라인 연결, 명사형 종결, 콤마 3+ 나열, 표 셀 4+ 압축)
+- [`### Markdown 작성 함정`](#markdown-작성-함정) 표의 패턴 (`~` 짝수개, `§` 기호, heredoc escape)
+
+자가 점검을 건너뛰고 곧바로 미리보기로 가면 사용자가 같은 규칙 위반을 반복 지적하게 된다. 컨텍스트 누적으로 규칙이 우선순위에서 밀려도 본 단계만은 통과 강제.
 
 ## LLM 코딩 사고 원칙
 
@@ -173,6 +220,10 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
   - 평문 마크다운 리스트 X — 사용자가 일일이 타이핑해야 하므로 UI 한 번에 선택할 수 있게.
   - 권장안은 첫 번째 + 라벨 끝에 "(권장)" 표기.
   - 단순 확인 (yes/no) / 정보 수집은 평문 OK.
+- **제안·선택지를 낼 땐 `AskUserQuestion` 을 적극 사용한다.** — 모호성 해소뿐 아니라, 내가 먼저 옵션·다음 단계·개선안을 제안할 때도 평문 나열 대신 `AskUserQuestion` 으로 묻는다.
+  - 사용자가 클릭 한 번에 고르게 하는 것이 기본. "~ 할까요? A/B/C" 를 평문으로 늘어놓지 않는다.
+  - 권장안 첫 번째 + "(권장)" 표기.
+  - 예외: 단순 yes/no 확인, 또는 사용자가 이미 방향을 명시한 경우.
 - **산출물 형식 미명시 요청은 형식 먼저 확인** — "X 만들어줘" / "Y 작성해줘" / "Z 정리해줘" 같은 요청은 다음 3가지 중 무엇인지 첫 도구 호출 전에 `AskUserQuestion`:
   - (a) 응답 본문에 텍스트로만 표시
   - (b) 파일로 저장 (작업 디렉터리)
@@ -261,11 +312,16 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 6. **헤더 + 본문 구조** — 섹션은 헤더 (`## 제목`) → 1줄 요약 → 본문 (리스트·표) 순. 헤더 바로 다음 줄에 긴 줄글 금지.
 7. **숫자 prefix 없는 heading** — fos-blog 등 자동 번호 매기는 시스템에서 `## 1. 제목` 같이 박으면 이중 번호.
 8. **`+` / `·` / `&` 인라인 연결 금지** — `A + B + C` / `A · B · C` 같이 항목을 인라인으로 묶지 말고 bullet list (`-`) 로 분리. 제목·간단한 부가 설명 (예: `RB_2026.05.21 — A + B`) 외 본문에는 사용 X. 두 항목 이상이면 항상 list 우선.
+9. **명사형 종결 회피 (본문 문장)** — paragraph 의 평문 문장은 동사로 끝맺어 의미를 완결한다.
+   - 금지 예: "측정 필요.", "정확도 회귀 0건 확보.", "동작 불변.", "해결 여부 미확정."
+   - 권장 예: "측정한다.", "확보하는 것이 목표이다.", "동작이 변하지 않는다.", "해결되었는지 확정되지 않은 상태이다."
+   - 예외 — bullet list / 표 셀 / 헤더 / 부가 설명 안의 항목은 명사구 종결 OK (예: `진입점 — env 변수`). list/표는 이미 항목 구조라 동사 종결 강제 시 오히려 장황해진다.
 
 자가 점검 — 글 작성 직후 한 번 다시 읽으며:
 
 - 한 paragraph 에 콤마가 3개 이상 + 정보 항목이 콤마로 분리된 곳이 있는가? → 리스트로 변환.
 - 본문에 `A + B` / `A · B` / `A & B` 같은 인라인 연결로 항목 묶은 곳이 있는가? → bullet list 로 변환.
+- paragraph 의 평문 문장이 "필요.", "확보.", "미확정.", "불변." 같은 명사형으로 끝나는 곳이 있는가? → 동사로 풀이.
 - 한 줄이 너무 길어 화면 폭 (보통 100~120 cols) 을 넘는가? → semantic break 적용.
 - 표 셀이 한 셀에 4+ 정보 압축되어 있는가? → `<br>` 분리.
 
@@ -273,10 +329,10 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 
 생성한 markdown (GitHub 이슈/PR, Dooray 댓글, 위키 본문 등) 은 작성 직후 아래 패턴을 점검한다.
 
-| 패턴 | 증상 | 대응 |
-|---|---|---|
-| `~ ... ~` (한 단락에 짝수개) | 두 `~` 사이가 취소선 (`<del>`) 으로 렌더 — 범위 표기 (`60~100`, `2026-04-27 ~ 05-03`) 에서 자주 발생 | (a) `\~` 이스케이프, (b) `-` 또는 "부터/까지" 로 표기, (c) 코드 블록 (\`...\`) 으로 보호 |
-| `§` (섹션 기호) 사용 | 한국 사용자에게 직관 어려운 법조문/학술 기호. AI agent 와 사람 양쪽 다 즉시 의미 파악 어려움 | "섹션 N", "N장", 또는 단순 "N." 로 표기. 예: `§ 1.` → `섹션 1.` |
+| 패턴                                                          | 증상                                                                                                                                                                                                                 | 대응                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `~ ... ~` (한 단락에 짝수개)                                  | 두 `~` 사이가 취소선 (`<del>`) 으로 렌더 — 범위 표기 (`60~100`, `2026-04-27 ~ 05-03`) 에서 자주 발생                                                                                                                 | (a) `\~` 이스케이프, (b) `-` 또는 "부터/까지" 로 표기, (c) 코드 블록 (\`...\`) 으로 보호                                                                                                                                                               |
+| `§` (섹션 기호) 사용                                          | 한국 사용자에게 직관 어려운 법조문/학술 기호. AI agent 와 사람 양쪽 다 즉시 의미 파악 어려움                                                                                                                         | "섹션 N", "N장", 또는 단순 "N." 로 표기. 예: `§ 1.` → `섹션 1.`                                                                                                                                                                                        |
 | heredoc 안에서 `` \` `` / `\"` escape 가 그대로 본문에 들어감 | **quoted heredoc** (`'EOF'`) 에서는 `$`·`` ` ``·`\` 모두 비활성화 → escape 불필요.<br>그런데 안전하다고 escape 를 박으면 backslash 가 리터럴로 본문에 남아 markdown 깨짐.<br>예: `` \`/metrics\` `` → `\`/metrics\`` | (a) **`gh pr create/edit --body-file <path>`** 로 파일 경로 전달 — heredoc·quoting 함정 자체 회피<br>(b) quoted heredoc 안에서는 escape 절대 박지 않기<br>(c) 작성 직후 `gh pr view <N> --json body -q .body \| tr -cd '\\\\' \| wc -c` 가 0 인지 확인 |
 
 본문 생성 직후 의심 문자 등장 횟수가 짝수이면 한 번 더 검토.
@@ -284,33 +340,17 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 ### 한국어 표현 정책
 
 한국 사용자가 한 번에 의미를 파악하기 어려운 외래어·전문용어는 사용자 응답·docs·skill 작성 모두에서 사용하지 않는다.
+기술 식별자 (폴더명, 슬래시 커맨드, 코드 심볼, 경로) 는 그대로 둔다 — 한국어 prose 만 정리한다.
 
-예외:
-기술 식별자 (폴더명, 슬래시 커맨드, 코드 심볼, 경로) 는 그대로 둔다 — 한국어 prose 만 정리.
-
-기존 docs 에서 발견 시:
-- 작업 중인 파일: 함께 정리
-- 작업 외 파일: 사용자에게 알리고 별도 정리 여부 확인
-
-| 금지 | 권장 대체 |
-|---|---|
-| 매트릭스 (matrix) | 영향 표, 변경-docs 매핑 표, 체크 표, 분류 표, 단순 "표" |
-| 트리아지 (triage) | 분류, 분류 작업 (의료/긴급도 함의 불요 시) |
-| 베이스라인 / baseline | 기준값 (단일 측정값), 기준점 (단·시점 기준), 기준선 (성능 추이·차트), 현재 상태 (시스템 스냅샷) |
-| 스파이크 (spike) | 사전 조사, 탐색 작업, 실증 |
-| 게이트 (gate) | 점검, 사전 점검, 통과 조건 |
-| wall-time / wall clock time | 전체 처리 시간 (시작-끝), 처리 시간 (단계명 결합), 실제 처리 시간 (CPU 시간과 구분 필요 시) |
-| silent failure | 묻혀버린 실패, 노출 안 되는 실패 |
-| in-flight (요청) | 처리 중인 (요청), 진행 중인 (요청) |
-| 리포지토리 위생 (repo hygiene) | 리포지토리 정리, gitignore 정비, 추적 파일 정리 |
-
-위에 없는 외래어·전문용어도 같은 원칙으로 한국어로 바꾼다. 판단 애매하면 사용자에게 묻는다.
+프로젝트별 외래어 매핑 표·문장 종결 규칙·자가 점검 항목은 각 프로젝트의 `korean-style.md` 에 정리한다.
+프로젝트에 해당 파일이 없으면 위 원칙만 적용한다.
 
 ### AskUserQuestion 한국어 표기 — native UTF-8 강제
 
 `AskUserQuestion` 도구 호출 시 한국어 텍스트 (`question` / `header` / `label` / `description`) 는 **반드시 native UTF-8 character** 로 작성한다. `\uXXXX` Unicode escape sequence 로 인코딩하지 않는다.
 
 **이유**:
+
 - JSON spec 은 native UTF-8 을 그대로 허용 — `\u` escape 는 ASCII-only 호환을 위한 옵션이지 필수 아님
 - escape 로 인코딩하면 character 단위 오타가 누적되어 사용자 화면에 깨진 한글로 표시될 위험. 실측 사례: "근데 이게 제일 일순위 일은 아닌거 같은데" → "근데 이게 제일 일시 명을 아닌거 같은데" 로 깨짐
 - 다른 도구 (Edit / Write / Bash) 는 native 로 쓰고 있어 일관성 측면에서도 native 가 정답
@@ -320,7 +360,48 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 **권장 (native)** — UTF-8 그대로 작성:
 
 ```json
-{"label": "일반적인 압박", "description": "면접관이 압박 용 질문을 던집니다"}
+{ "label": "일반적인 압박", "description": "면접관이 압박 용 질문을 던집니다" }
 ```
 
 **자가 점검**: AskUserQuestion 호출 직전 JSON payload 에 `\u` 가 보이면 native 로 변환 후 보낸다. 영문 기술 용어 (예: `Spring`, `JPA`) 는 그대로 둔다.
+
+## 개인 Brain (fos-brain) 연동
+
+사용자는 `~/personal/fos-brain` 에 Karpathy 스타일 개인 지식 기반(brain)을 운영한다.
+세 네임스페이스 — `public`(루트 `wiki/`·`raw/`), `private/`, `work/` — 로 나뉘며 뒤 둘은 gitignore 다.
+검색은 qmd MCP 서버(`qmd-brain`)가 모든 세션에 상시 제공한다.
+
+### 검색 방법 (how)
+
+- **도구**: qmd MCP `qmd-brain`(새 세션 기본). MCP 가 없으면 qmd CLI 를 Bash 로 호출.
+- **명령 레시피**:
+  - 일반 질의(권장): `qmd query "<질문>"` — BM25 + 벡터 + rerank 하이브리드
+  - 키워드: `qmd search "<term>" -c <collection>`
+  - 의미: `qmd vsearch "<text>" -c <collection>`
+- **컬렉션**:
+  - `brain-wiki` — 공개 wiki
+  - `brain-raw` — 공개 raw 원본
+  - `brain-work-nhn` — 회사(NHN) 자료 (로컬 전용)
+- **무엇이 있나** — 목록을 여기 박지 않는다(rot). 각 네임스페이스의 `wiki/INDEX.md` 가 **살아있는 카탈로그**다. 검색 전 INDEX 를 먼저 읽어 후보 영역을 잡고, 그 다음 qmd 로 좁힌다.
+
+### 자동 참조 (search)
+
+다음 상황에서는 답하기 전에 brain 을 먼저 조회한다 (qmd MCP `qmd-brain` 또는 `brain-search` skill):
+
+- 사용자의 과거 결정·취향·업무 스타일·학습 내용이 답에 영향을 줄 수 있을 때
+- "예전에", "내 스타일", "전에 정했던", "내가 어떻게 했더라" 류의 질문
+- 사용자의 다른 프로젝트·하네스·컨벤션을 참고해야 할 때
+
+무관한 일반 코딩 작업에는 끼어들지 않는다 (brain 이 답을 더 좋게 만들 때만 참조).
+인용 시 출처 페이지와 네임스페이스를 밝힌다. 비공개(private·work) 내용을 공개 맥락에 노출하지 않는다.
+
+### 승인형 등록 (add) — 자동 쓰기 금지
+
+세션에서 **재사용 가치가 있는 durable 지식**(의사결정·패턴·학습·취향·업무 방식)이 나오면 brain 등록을 *제안*한다.
+
+- **절대 사용자 승인 없이 brain 에 쓰지 않는다.**
+- 순서: 핵심 요약 미리보기(채팅 인라인) → 어느 네임스페이스에 넣을지 포함해 `AskUserQuestion` 으로 확인 → 승인 시에만 `brain-add` 실행.
+- 등록 후 INDEX·log 갱신, public 변경이면 commit·push 까지는 별도 승인 절차를 따른다.
+- 일시적·세션 한정 정보는 등록하지 않는다 (brain 은 compounding 자산).
+
+자세한 워크플로우는 `brain-add` / `brain-search` / `brain-lint` skill 과 `~/personal/fos-brain/CLAUDE.md` 스키마를 따른다.
