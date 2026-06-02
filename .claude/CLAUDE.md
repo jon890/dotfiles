@@ -87,27 +87,11 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 ## Terminal Environment: cmux
 
-This environment runs on **cmux** (not plain tmux). Rules file: `~/.claude/rules/cmux-guide.md`.
+이 환경은 **cmux**(plain tmux 아님) 위에서 실행된다. 수동으로 터미널을 제어할 때는 tmux 대신 cmux CLI 를 쓰고, cmux 가 없으면 tmux 로 폴백한다.
 
-<cmux_environment>
-**Use cmux CLI instead of tmux when manually controlling the terminal.**
+cmux 명령어·감지 패턴·claude-teams·tmux 폴백 전체: @~/.claude/rules/cmux-guide.md
 
-Detection pattern:
-
-```bash
-if command -v cmux &>/dev/null && [ -n "$CMUX_WORKSPACE_ID" ]; then
-  cmux new-split right && cmux send --surface surface:2 "cmd\n"
-else
-  tmux split-window -h && tmux send-keys "cmd" C-m
-fi
-```
-
-Key commands: `cmux read-screen`, `cmux capture-pane`, `cmux send --surface ID "cmd\n"`, `cmux focus --surface ID`, `cmux browser`, `cmux wait-for`
-
-Agent Teams: `cmux claude-teams '<prompt>'` — sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` automatically.
-
-**Note:** OMC `/team` and `/omc-teams` internally call `execFile('tmux', ...)` — tmux binary must remain installed separately. Use cmux only for manual terminal operations.
-</cmux_environment>
+**주의**: OMC `/team`·`/omc-teams` 는 내부적으로 tmux 바이너리를 직접 호출하므로 tmux 는 별도로 설치돼 있어야 한다.
 
 ## 백그라운드 작업 대기 (sleep 금지)
 
