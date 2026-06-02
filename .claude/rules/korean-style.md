@@ -16,8 +16,6 @@
 | 스파이크 (spike) | 사전 조사, 탐색 작업, 실증 |
 | 게이트 (gate) | 점검, 사전 점검, 통과 조건 |
 | wall-time / wall clock time | 전체 처리 시간 (시작-끝), 실제 처리 시간 (CPU time 과 구분 필요 시) |
-| latency | 지연 시간, 응답 시간 |
-| throughput | 처리량 |
 | silent failure | 묻혀버린 실패, 노출 안 되는 실패 |
 | in-flight (요청) | 처리 중인 (요청), 진행 중인 (요청) |
 | 리포지토리 위생 (repo hygiene) | 리포지토리 정리, gitignore 정비 |
@@ -36,6 +34,17 @@
 - `rate limit` / `autoscaling` / `downstream` / `pipeline`
 - 코드·도구 식별자 (`yield` / `tuple` / `Counter` / `Release` 등)
 - 언어 관용 (generator / context manager 등)
+
+## 영어 표기 유지와 최초 병기
+
+다음 관측성·운영 용어는 한글로 풀지 않고 **영어 표준 표기를 유지**하되, 기술 개념·블로그 문서에서 **처음 등장할 때만 한국어를 병기**한다 — `Latency`(지연) 형태. 영어를 빼면 검색·인터뷰·실무 표기와 어긋나기 때문이다.
+
+- `Latency`(지연), `Throughput`(처리량), `Saturation`(포화도), `Backpressure`(배압)
+
+맥락에 따라 적용을 가른다:
+
+- 독자가 개발자인 기술 개념·블로그 문서 → 영어 표기 유지, 최초 1회 병기.
+- 업무 보고·일반 설명·채팅 응답 → 한국어로 풀어 설명한다.
 
 ## 기존 docs 에서 발견 시
 
