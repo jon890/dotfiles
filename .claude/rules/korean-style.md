@@ -31,7 +31,7 @@
 
 한국 개발자도 영문에 더 익숙한 용어는 그대로 쓴다:
 
-- `rate limit` / `autoscaling` / `downstream` / `pipeline`
+- `rate limit` / `autoscaling` / `downstream` / `pipeline` / `backpressure`
 - 코드·도구 식별자 (`yield` / `tuple` / `Counter` / `Release` 등)
 - 언어 관용 (generator / context manager 등)
 
@@ -39,7 +39,7 @@
 
 다음 관측성·운영 용어는 한글로 풀지 않고 **영어 표준 표기를 유지**하되, 기술 개념·블로그 문서에서 **처음 등장할 때만 한국어를 병기**한다 — `Latency`(지연) 형태. 영어를 빼면 검색·인터뷰·실무 표기와 어긋나기 때문이다.
 
-- `Latency`(지연), `Throughput`(처리량), `Saturation`(포화도), `Backpressure`(배압)
+- `Latency`(지연), `Throughput`(처리량), `Saturation`(포화도)
 
 맥락에 따라 적용을 가른다:
 
