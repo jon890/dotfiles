@@ -460,6 +460,7 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
   - `brain-wiki` — 공개 wiki
   - `brain-raw` — 공개 raw 원본
   - `brain-work-nhn` — 회사(NHN) 자료 (로컬 전용)
+  - `brain-private` — 개인 비공개 wiki (`private/wiki`, 로컬 전용)
 - **무엇이 있나** — 목록을 여기 박지 않는다(rot). 각 네임스페이스의 `wiki/INDEX.md` 가 **살아있는 카탈로그**다. 검색 전 INDEX 를 먼저 읽어 후보 영역을 잡고, 그 다음 qmd 로 좁힌다.
 - **qmd 가 깨졌을 때** — `"better-sqlite3 재컴파일 필요"` 류 에러는 node ABI 불일치다(mise 가 세션마다 node 버전을 바꿔서 발생). grep 폴백 전에 먼저 `touch ~/.bun/install/global/node_modules/@tobilu/qmd/bun.lock` 로 bun 실행을 고정해 복구를 시도한다(상세·원리는 `~/personal/fos-brain/CLAUDE.md` 의 "런타임 함정" 절).
 
