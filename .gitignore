@@ -46,3 +46,8 @@
 !.claude/rules/
 .claude/rules/*
 !.claude/rules/*.md
+
+# Codex 전역 instruction
+!.codex/
+.codex/*
+!.codex/AGENTS.md
