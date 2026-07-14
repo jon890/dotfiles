@@ -8,3 +8,11 @@
     path = ~/.gitconfig-personal
 [includeIf "gitdir:/Users/nhn/projects/"]
     path = ~/.gitconfig-work
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[url "git@github-personal:"]
+	insteadOf = git@github.com:
