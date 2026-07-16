@@ -46,6 +46,11 @@
 !.claude/rules/
 .claude/rules/*
 !.claude/rules/*.md
+!.claude/templates/
+!.claude/templates/**
+!.claude/skills/
+!.claude/skills/content-preview/
+!.claude/skills/content-preview/**
 
 # Codex 전역 instruction
 !.codex/
