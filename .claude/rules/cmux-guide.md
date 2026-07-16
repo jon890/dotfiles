@@ -53,8 +53,4 @@ cmux claude-teams '<task description>'
 cmux claude-teams --dangerously-skip-permissions -p '<task>'
 ```
 
-## 주의사항
-
-- OMC `omc team` / `/team` / `/omc-teams`는 tmux 바이너리를 직접 호출 → 별도 설치 필요
-- `cmux claude-teams`는 OMC team과 별개로 동작하는 독립 명령
-- 에이전트가 직접 터미널을 열거나 pane을 조작해야 할 때만 cmux CLI 사용
+> `cmux claude-teams` 는 OMC team 과 별개로 동작하는 독립 명령이다.

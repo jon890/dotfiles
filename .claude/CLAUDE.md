@@ -106,7 +106,7 @@ harness 가 `sleep` 선행 패턴을 차단하므로 처음부터 올바른 도�
 
 이 사용자의 zsh 는 `noclobber` 가 켜져 있다.
 이미 존재하는 파일에 `명령 > 기존파일` 로 리다이렉트하면 셸이 거부하고 (`file exists`), 그 명령의 출력이 파일에 **안 들어간다**.
-거부돼도 기존 파일이 그대로 남아, 옛 내용을 새 내용으로 착각하는 묻혀버린 실패가 된다 (실측: ID 목록 재생성 시 옛 4193행이 유지됨).
+거부돼도 기존 파일이 그대로 남아, 옛 내용을 새 내용으로 착각하는 묻혀버린 실패가 된다 (실측: 재생성해도 옛 내용이 그대로 유지됨).
 
 - **기본**: 같은 경로에 다시 쓸 때는 먼저 `rm -f <경로>` 후 `>`, 또는 `>|` (zsh 강제 덮어쓰기) 를 쓴다.
 - 이건 특정 도구 (`gh`·`dooray`·`mktemp`) 만의 문제가 아니라 **모든 `>` 리다이렉트에 적용되는 환경 특성**이다.
@@ -195,95 +195,19 @@ harness 가 `sleep` 선행 패턴을 차단하므로 처음부터 올바른 도�
 - **Memory 승격**: "CLAUDE.md 에 적었는데 잘 안 지켜지더라" 같은 신호가 있을 때만 별도 제안. 사용자 승인 후 진행.
 - **예외**: 사용자가 "기억해줘", "memory 에 저장해줘" 같이 명시적으로 memory 를 지목한 경우.
 
-## Claude Code Slash Commands
-
-`.claude/commands/` 디렉터리 기반 슬래시 커맨드는 **deprecated**.
-
-대안:
-
-- 새로운 반복 워크플로우·자동화는 **skill** 로 작성
-- 작성 위치: `~/.claude/skills/` 또는 OMC 플러그인 skill
-- 도구: `oh-my-claudecode:skill` / `skill-creator`
-
-기존 워크플로우 제안 시에도 슬래시 커맨드 신설은 권하지 않는다.
-
 ## Content Preview (필수)
 
-사용자에게 등록·게시 전 미리보기를 보여줄 때는 **반드시 본문 내용을 채팅 메시지 본문에 인라인으로 표시**한다.
+외부에 게시·등록되는 본문(Dooray 댓글·업무, GitHub 이슈·PR, 메일·슬랙, 위키)은 등록 전 반드시 미리보기를 보여준다. 사용자가 "미리보기"라고 명시하지 않아도 외부에 나갈 텍스트를 등록하려는 순간이면 적용한다. 로컬 파일 작성·코드 커밋은 대상 아님.
 
-이유:
-`Write`/`Edit` 도구로 임시 파일에 저장만 하면 사용자 화면에는 도구 호출 자체만 보이고 내용이 숨겨져서 사용자가 검토·수정 지시를 할 수 없다.
+- **채팅 인라인 본문 + 실제 렌더링 HTML 을 함께** 띄운다. `Write`/`Edit` 로 임시 파일에만 저장하면 내용이 숨겨져 사용자가 검토·수정할 수 없다.
+- 순서: 본문 작성 → 자가 점검 → 미리보기(턴 종료) → 사용자 응답 → 등록.
+- **미리보기와 `AskUserQuestion` 을 같은 턴에 묶지 않는다** — 모달이 본문을 가려 읽기 전에 결정을 강요한다.
 
-적용 대상:
-
-- Dooray 댓글/업무 본문
-- GitHub 이슈/PR 본문
-- 메일·슬랙 메시지
-- 외부에 게시될 모든 텍스트
-
-순서: **본문 작성 → 자가 점검 → 미리보기 (턴 종료) → 사용자가 읽고 응답 → 등록.**
-
-- **미리보기와 `AskUserQuestion` 을 같은 턴에 묶지 않는다 (필수)** — 모달이 미리보기 본문을 가려 사용자가 읽기 전에 결정을 강요당한다 (실측 2회: Dooray 업무 미리보기를 두 번 모두 못 봄). 미리보기 턴은 미리보기로 끝내고, 등록 확인은 사용자가 본문을 읽고 응답한 다음 턴에서 받는다.
-
-자가 점검 (의무, 미리보기 직전 통과):
-
-- [`### 마크다운 가독성`](#마크다운-가독성-사람ai-공동-가독) 의 8가지 규칙 본문 적용 여부
-- 같은 섹션의 4가지 자가 점검 항목 (`+ / · / &` 인라인 연결, 명사형 종결, 콤마 3+ 나열, 표 셀 4+ 압축)
-- [`### Markdown 작성 함정`](#markdown-작성-함정) 표의 패턴 (`~` 짝수개, `§` 기호, heredoc escape)
-- [`### 한국어 표현 정책`](#한국어-표현-정책) 의 자가 점검 4항목 — 외래어 잔존(매핑표 밖 포함, 예: 케이던스→주기), 비유어·등급어(숙제를 해소/승급/강등), 명사형 종결, 생소한 한자어(순단 등). 실측: 이 항목이 본 목록에 없던 동안 "숙제를 해소"·"케이던스"·"승급 필요." 가 미리보기까지 통과함 (2026-07-03)
-
-자가 점검을 건너뛰고 곧바로 미리보기로 가면 사용자가 같은 규칙 위반을 반복 지적하게 된다. 컨텍스트 누적으로 규칙이 우선순위에서 밀려도 본 단계만은 통과 강제.
-
-### 외부 게시 본문 HTML 미리보기 (Dooray · GitHub)
-
-Dooray 업무·댓글, GitHub issue·PR 본문의 미리보기는 **기본으로 HTML 로 띄운다** — 사용자가 따로 요청하지 않아도, 등록·게시 전 미리보기 단계에서 실제 렌더링과 비슷한 HTML 을 만들어 브라우저로 띄운다.
-채팅 인라인 본문 표시만으로 끝내지 않는다 — 인라인은 본문 기록용, HTML 은 실제 렌더링 검토용. 둘을 **함께** 띄우고 HTML 을 생략하지 않는다 (사용자 피드백 2026-06-16 — "미리보기를 채팅 세션 말고 HTML 로").
-
-공통 주의:
-
-- 본문에 `</script>` 문자열 금지 (생성기가 검출·거부).
-- CDN 로드라 오프라인이면 스타일이 빠진다.
-
-| 대상 | 렌더링 원리 | 생성기 (template.html + generate.py) |
-| --- | --- | --- |
-| Dooray | NHN TOAST UI Editor viewer CSS/JS (`uicdn.toast.com/editor/latest`) → 실제 등록 화면과 거의 동일 | `~/.claude/templates/dooray-preview/` |
-| GitHub | github-markdown-css (공식 스타일) + marked.js (GitHub Flavored Markdown) → 실제 화면과 비슷 | `~/.claude/templates/github-preview/` |
-
-Dooray 사용법:
-
-```bash
-python3 ~/.claude/templates/dooray-preview/generate.py \
-  --title "[VectorSearch] [DocParser] ..." \
-  --tag "Document Parser" --tag "개선" --tag "REAL" \
-  --meta "담당자:김병태" --meta "참조:개발 그룹" \
-  --md-file /tmp/body.md --out /tmp/dooray-preview.html
-cmux browser open "file:///tmp/dooray-preview.html"
-```
-
-GitHub 사용법 (`--type` 은 `issue` 또는 `pr`, 헤더 배지 색 구분):
-
-```bash
-python3 ~/.claude/templates/github-preview/generate.py \
-  --type issue \
-  --repo "toast-lab/ai-playground-docu-parser" \
-  --title "..." \
-  --md-file /tmp/gh-body.md --out /tmp/gh-preview.html
-cmux browser open "file:///tmp/gh-preview.html"
-```
-
-- GitHub 고유 자동링크 (`#번호`) 와 `:emoji:` 코드는 marked.js 가 변환하지 않는다. 정확한 GFM 은 등록 후 GitHub 에서 확인한다.
-
-> `~/.claude/templates/` 는 Claude Code 가 자동 인식하는 공식 경로가 아니라 절대경로로 참조하는 관례 폴더다.
-> 미리보기 유틸이 더 늘면 스킬(`~/.claude/skills/`)로 묶어 공식 구조(스킬 번들 안 `templates/` + `scripts/`)로 승격한다.
+절차·자가 점검 체크리스트·HTML 생성기(Dooray·GitHub) 사용법은 `content-preview` skill 을 연다.
 
 ## LLM 코딩 사고 원칙
 
-LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
-프로젝트별 지시사항과 함께 적용한다.
-
-**비용·이득 절충**: 본 원칙들은 속도보다 신중함 쪽으로 기울인다. 사소한 작업은 판단으로 생략 가능.
-
----
+LLM 코딩 실수를 줄이기 위한 행동 지침 (프로젝트 지시와 함께 적용). 신중함 쪽으로 기울이며, 사소한 작업은 판단으로 생략 가능.
 
 ### 1. 코딩 전에 생각하기
 
@@ -301,8 +225,8 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
   - 사용자가 클릭 한 번에 고르게 하는 것이 기본. "~ 할까요? A/B/C" 를 평문으로 늘어놓지 않는다.
   - 권장안 첫 번째 + "(권장)" 표기.
   - 예외: 단순 yes/no 확인, 또는 사용자가 이미 방향을 명시한 경우.
-  - **질문 직전에 설명을 먼저 한다 (필수)** — 선택지를 던지기 전에 응답 본문에서 각 옵션의 의미·배경·권장 이유를 풀어 설명하고 나서 질문한다. 옵션 description 만으로 처음 보는 개념·절차를 전달하려 하지 않는다 (사용자 피드백 2026-06-11 — "설명을 해주고 결정했으면 좋겠어").
-  - **설명과 AskUserQuestion 을 같은 턴에 묶지 않는다 (필수)** — 처음 보는 개념·절차에 대한 결정이면 설명만 보내고 턴을 끝낸다. 사용자가 읽고 반응한 다음 턴에서 AskUserQuestion 으로 결정을 받는다. 같은 턴에 묶으면 모달이 본문을 가려 설명을 읽기 전에 결정을 강요하게 된다 (사용자 피드백 2026-06-11 — "아직 설명 안 했는데").
+  - **질문 직전에 설명을 먼저 한다 (필수)** — 선택지를 던지기 전에 응답 본문에서 각 옵션의 의미·배경·권장 이유를 풀어 설명하고 나서 질문한다. 옵션 description 만으로 처음 보는 개념·절차를 전달하려 하지 않는다.
+  - **설명과 AskUserQuestion 을 같은 턴에 묶지 않는다 (필수)** — 처음 보는 개념·절차에 대한 결정이면 설명만 보내고 턴을 끝낸다. 사용자가 읽고 반응한 다음 턴에서 AskUserQuestion 으로 결정을 받는다. 같은 턴에 묶으면 모달이 본문을 가려 설명을 읽기 전에 결정을 강요하게 된다.
 - **산출물 형식 미명시 요청은 형식 먼저 확인** — "X 만들어줘" / "Y 작성해줘" / "Z 정리해줘" 같은 요청은 다음 3가지 중 무엇인지 첫 도구 호출 전에 `AskUserQuestion`:
   - (a) 응답 본문에 텍스트로만 표시
   - (b) 파일로 저장 (작업 디렉터리)
@@ -365,14 +289,6 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 강한 성공 기준은 독립적 반복을 가능하게 한다.
 약한 기준 ("동작하게 만들기") 은 지속적 확인이 필요하다.
 
----
-
-본 원칙이 작동하는 신호:
-
-- 변경 diff 에서 불필요한 변경이 줄어든다
-- 과복잡으로 인한 재작성이 줄어든다
-- 명확화 질문이 실수 이후가 아니라 구현 이전에 나온다
-
 ## General Rules
 
 - **사용자가 영역을 지목하면 그 영역부터** — 넓게 코드베이스 탐색 금지. 사용자가 이미 방향을 제시한 경우 불필요하게 많은 파일을 읽지 않는다.
@@ -394,27 +310,10 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 
 ### AskUserQuestion 한국어 표기 — native UTF-8 강제
 
-`AskUserQuestion` 도구 호출 시 한국어 텍스트 (`question` / `header` / `label` / `description`) 는 **반드시 native UTF-8 character** 로 작성한다. `\uXXXX` Unicode escape sequence 로 인코딩하지 않는다.
+`AskUserQuestion` 의 한국어(`question`/`header`/`label`/`description`)는 **native UTF-8 그대로** 타이핑한다. `\uXXXX` escape 로 인코딩하지 않는다 — character 단위로 손 매핑하다 오타가 누적돼 화면에 깨진 한글이 나온다 (실측 있음). Edit/Write 에 문자열 쓰듯 완성된 한글을 그대로 옮기면 된다.
 
-**이유**:
-
-- JSON spec 은 native UTF-8 을 그대로 허용 — `\u` escape 는 ASCII-only 호환을 위한 옵션이지 필수 아님
-- escape 로 인코딩하면 character 단위 오타가 누적되어 사용자 화면에 깨진 한글로 표시될 위험. 실측 사례: "근데 이게 제일 일순위 일은 아닌거 같은데" → "근데 이게 제일 일시 명을 아닌거 같은데" 로 깨짐
-- 다른 도구 (Edit / Write / Bash) 는 native 로 쓰고 있어 일관성 측면에서도 native 가 정답
-
-**위반 (금지)** — 한국어 character 를 `\\u` + 16진수 4자리 escape 로 인코딩하는 방식 (예: 한국어 "일반" 을 `\\uc77c\\ubc18` 로 표현). JSON spec 은 허용하지만 character 단위로 손으로 매핑하면서 오타 누적.
-
-**권장 (native)** — UTF-8 그대로 작성:
-
-```json
-{ "label": "일반적인 압박", "description": "면접관이 압박 용 질문을 던집니다" }
-```
-
-**재발 사례 (2026-06-28)** — 자가 점검 문구가 이미 있었음에도 재발했다. "이 업무" 를 쓰려다 `러오` 로 escape 하고, 매핑까지 틀려 "러오" 라는 무관한 한글로 사용자 화면에 노출됐다. 자가 점검이 "다 쓴 뒤 훑어보기"에 의존하면, 애초에 escape 생성 자체를 습관적으로 반복하다 점검을 건너뛰어 실패한다.
-
-**행동 규칙 (근본 차단)** — 한글 hex 코드를 계산하려는 시도 자체가 위반 신호다. `question` / `header` / `label` / `description` 의 한국어는 Edit/Write 도구에 문자열을 쓸 때와 동일하게, 계산 없이 완성된 한글 단어를 그대로 타이핑한다. "이 글자를 `\uXXXX` 로 어떻게 표현하지" 라는 생각이 스치면 그 즉시 멈추고, 지금 쓰려던 그 한글 단어를 escape 하지 않고 바로 옮긴다.
-
-**자가 점검 (도구 호출 직전, 필수)** — payload 조립 후 전송 전에 텍스트 전체를 다시 눈으로 읽는다 (해독하지 않고 그대로 읽었을 때 자연스러운 한국어 문장인지). `\u` 패턴이 하나라도 보이면 전송하지 않고 전체를 native 문자로 다시 쓴다. 영문 기술 용어 (예: `Spring`, `JPA`) 는 그대로 둔다.
+- **근본 차단**: "이 글자를 `\uXXXX` 로 어떻게 쓰지" 라는 생각이 스치면 그게 위반 신호다 — 즉시 멈추고 한글 단어를 그대로 옮긴다. hex 계산 시도 자체를 하지 않는다.
+- **자가 점검 (전송 직전)**: payload 를 그대로 읽어 자연스러운 한국어인지 확인. `\u` 가 하나라도 보이면 native 로 다시 쓴다. 영문 기술 용어(`Spring` 등)는 그대로.
 
 ## 사용자 배경
 
@@ -436,18 +335,10 @@ LLM 이 자주 저지르는 코딩 실수를 줄이기 위한 행동 지침.
 
 ### 검색 방법 (how)
 
-- **도구**: qmd MCP `qmd-brain`(새 세션 기본). MCP 가 없으면 qmd CLI 를 Bash 로 호출.
-- **명령 레시피**:
-  - 일반 질의(권장): `qmd query "<질문>"` — BM25 + 벡터 + rerank 하이브리드
-  - 키워드: `qmd search "<term>" -c <collection>`
-  - 의미: `qmd vsearch "<text>" -c <collection>`
-- **컬렉션**:
-  - `brain-wiki` — 공개 wiki
-  - `brain-raw` — 공개 raw 원본
-  - `brain-work-nhn` — 회사(NHN) 자료 (로컬 전용)
-  - `brain-private` — 개인 비공개 wiki (`private/wiki`, 로컬 전용)
-- **무엇이 있나** — 목록을 여기 박지 않는다(rot). 각 네임스페이스의 `wiki/INDEX.md` 가 **살아있는 카탈로그**다. 검색 전 INDEX 를 먼저 읽어 후보 영역을 잡고, 그 다음 qmd 로 좁힌다.
-- **qmd 가 깨졌을 때** — `"better-sqlite3 재컴파일 필요"` 류 에러는 node ABI 불일치다(mise 가 세션마다 node 버전을 바꿔서 발생). grep 폴백 전에 먼저 `touch ~/.bun/install/global/node_modules/@tobilu/qmd/bun.lock` 로 bun 실행을 고정해 복구를 시도한다(상세·원리는 `~/personal/fos-brain/CLAUDE.md` 의 "런타임 함정" 절).
+- **도구**: qmd MCP `qmd-brain` (상시 제공 — 컬렉션·쿼리 타입·예시는 MCP 서버 지침 참조). MCP 없으면 qmd CLI. 워크플로는 `brain-search` skill.
+- **컬렉션**: `brain-wiki`·`brain-raw` (공개), `brain-work-nhn`·`brain-private` (로컬 전용).
+- **라우팅**: 검색 전 각 네임스페이스 `wiki/INDEX.md` (살아있는 카탈로그)로 후보 영역을 잡고 qmd 로 좁힌다.
+- **qmd 복구**: `better-sqlite3 재컴파일` 류 에러는 node ABI 불일치 — `touch ~/.bun/install/global/node_modules/@tobilu/qmd/bun.lock` 로 복구 시도 (원리는 `~/personal/fos-brain/CLAUDE.md` "런타임 함정").
 
 ### 자동 참조 (search)
 
