@@ -46,6 +46,9 @@
 !.claude/rules/
 .claude/rules/*
 !.claude/rules/*.md
+!.claude/scripts/
+.claude/scripts/*
+!.claude/scripts/*.sh
 !.claude/templates/
 !.claude/templates/**
 !.claude/skills/
