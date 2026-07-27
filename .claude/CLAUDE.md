@@ -330,13 +330,13 @@ LLM 코딩 실수를 줄이기 위한 행동 지침 (프로젝트 지시와 함�
 ## 개인 Brain (fos-brain) 연동
 
 사용자는 `~/personal/fos-brain` 에 Karpathy 스타일 개인 지식 기반(brain)을 운영한다.
-세 네임스페이스 — `public`(루트 `wiki/`·`raw/`), `private/`, `work/` — 로 나뉘며 뒤 둘은 gitignore 다.
+두 네임스페이스 — `public`(루트 `wiki/`·`raw/`), `private/` — 로 나뉘며 뒤쪽은 gitignore 다. (사내 팀 지식은 brain 이 아니라 nbrain/Dooray 위키에 둔다.)
 검색은 qmd MCP 서버(`qmd-brain`)가 모든 세션에 상시 제공한다.
 
 ### 검색 방법 (how)
 
 - **도구**: qmd MCP `qmd-brain` (상시 제공 — 컬렉션·쿼리 타입·예시는 MCP 서버 지침 참조). MCP 없으면 qmd CLI. 워크플로는 `brain-search` skill.
-- **컬렉션**: `brain-wiki`·`brain-raw` (공개), `brain-work-nhn`·`brain-private` (로컬 전용).
+- **컬렉션**: `brain-wiki`·`brain-raw` (공개), `brain-private` (로컬 전용).
 - **라우팅**: 검색 전 각 네임스페이스 `wiki/INDEX.md` (살아있는 카탈로그)로 후보 영역을 잡고 qmd 로 좁힌다.
 - **qmd 복구**: `better-sqlite3 재컴파일` 류 에러는 node ABI 불일치 — `touch ~/.bun/install/global/node_modules/@tobilu/qmd/bun.lock` 로 복구 시도 (원리는 `~/personal/fos-brain/CLAUDE.md` "런타임 함정").
 
@@ -350,7 +350,7 @@ LLM 코딩 실수를 줄이기 위한 행동 지침 (프로젝트 지시와 함�
 - **환경 고유 값을 확신 없이 추측하려는 순간** (프로파일·appkey·프로젝트 코드·호스트명·계정·경로 등) — 토픽이 아니라 "추측하려는 나 자신"이 신호다. 코드·문서에서 확인 안 되면 추측 전 brain 먼저. 단 이런 사실이 해당 프로젝트 CLAUDE.md 에 이미 적혀 있으면 그쪽이 우선이고 조회 불필요.
 
 무관한 일반 코딩 작업에는 끼어들지 않는다 (brain 이 답을 더 좋게 만들 때만 참조).
-인용 시 출처 페이지와 네임스페이스를 밝힌다. 비공개(private·work) 내용을 공개 맥락에 노출하지 않는다.
+인용 시 출처 페이지와 네임스페이스를 밝힌다. 비공개(private) 내용을 공개 맥락에 노출하지 않는다.
 
 ### 승인형 등록 (add) — 자동 쓰기 금지
 
