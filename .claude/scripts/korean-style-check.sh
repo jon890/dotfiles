@@ -44,20 +44,28 @@ fi
 [ $# -gt 0 ] || exit 0
 
 # 매핑 표 첫 열에서 금지어를 뽑는다.
-#   "매트릭스 (matrix)" → 매트릭스 / "클램프 / clamp" → 클램프, clamp
+#   "클램프 / clamp"     → 클램프, clamp   (슬래시는 동의어 구분)
+#   "게이트 (gate)"      → 게이트, gate    (괄호 안 영어 원어도 금지어)
+#   "폭주 (CPU 폭주 등)" → 폭주            (괄호 안이 한국어면 용례 설명이라 제외)
+#   "ephemeral (instance / runner)" → ephemeral  (괄호 안 슬래시는 한정 설명이라 제외)
+# 괄호 안 영어를 등록하지 않으면 "외부 상태 gate" 처럼 원어를 그대로 쓴 문장이 통과한다.
 TERMS=$(awk '
+  function emit(s) {
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", s)
+    if (s != "") print s
+  }
   /^## 외래어 매핑 표/ { t = 1; next }
   t && /^## / { exit }
   t && /^\| / && !/^\|[[:space:]]*-/ && !/^\| 금지 / {
     split($0, cell, "|")
     col = cell[2]
-    gsub(/\([^)]*\)/, "", col)        # 괄호 주석 제거
-    n = split(col, parts, "/")
-    for (i = 1; i <= n; i++) {
-      term = parts[i]
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", term)
-      if (term != "") print term
+    while (match(col, /\([^)]*\)/)) {
+      inner = substr(col, RSTART + 1, RLENGTH - 2)
+      col = substr(col, 1, RSTART - 1) " " substr(col, RSTART + RLENGTH)
+      if (inner ~ /^[A-Za-z][A-Za-z -]*$/) emit(inner)
     }
+    n = split(col, parts, "/")
+    for (i = 1; i <= n; i++) emit(parts[i])
   }
 ' "$RULES" | sort -u)
 
@@ -71,6 +79,8 @@ fi
 for f in "$@"; do
   case "$f" in *.md) ;; *) continue ;; esac
   [ -f "$f" ] || continue
+  # 규칙 파일 자신은 건너뛴다 — 매핑 표가 곧 금지어 목록이라 전부 위반으로 잡힌다.
+  [ "$f" -ef "$RULES" ] && continue
 
   printf '%s\n' "$TERMS" | awk -v F="$f" '
     NR == FNR { terms[FNR] = $0; cnt = FNR; next }
@@ -88,7 +98,8 @@ for f in "$@"; do
           print F ":" FNR ": 금지어 \"" t "\" — korean-style 매핑 표의 권장 표현으로"
         }
       }
-      if (line ~ / \+ /)
+      # 헤딩은 제외 — markdown-readability 8 이 제목에서는 + 를 허용한다.
+      if (line ~ / \+ / && line !~ /^#+ /)
         print F ":" FNR ": 인라인 + 연결 — 쉼표·와/과 또는 목록으로 (markdown-readability 8)"
     }
   ' - "$f"
