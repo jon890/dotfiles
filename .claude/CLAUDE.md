@@ -196,6 +196,18 @@ harness 가 `sleep` 선행 패턴을 차단하므로 처음부터 올바른 도�
 
 절차·자가 점검 체크리스트·HTML 생성기(Dooray·GitHub) 사용법은 `content-preview` skill 을 연다.
 
+## 채팅 응답의 다이어그램 — mermaid 는 렌더되지 않는다
+
+채팅 세션은 ```mermaid``` 블록을 렌더하지 못하고 코드 그대로 보여 준다.
+그래서 채팅 응답에 다이어그램을 넣으려는 순간, mermaid 로 적고 끝내지 말고 **HTML 로 가시화해 보여줄지 사용자에게 묻는다.**
+
+- 적용 시점: 흐름·호출 관계·분기·시퀀스·아키텍처 계층을 채팅 응답 안에서 설명하려 할 때.
+- 묻는 방법: 답변 본문은 글과 표로 먼저 전달하고, 끝에 HTML 가시화 여부를 확인한다.
+  사용자가 이미 "html로 보여줘" 라고 했으면 묻지 않고 바로 만든다.
+- 만들 때는 `Artifact` 로 게시한다. 설계 기준은 `artifact-design` skill 을 먼저 연다.
+- 이건 채팅 응답에만 해당한다.
+  GitHub·Dooray 같은 외부 게시물은 mermaid 를 렌더하므로 `@~/.claude/rules/markdown-readability.md` 의 "mermaid 우선" 규칙을 그대로 따른다.
+
 ## 질문·제안은 AskUserQuestion 으로
 
 - 옵션·다음 단계·개선안을 제안할 때 평문 나열 대신 `AskUserQuestion` 을 쓴다.
