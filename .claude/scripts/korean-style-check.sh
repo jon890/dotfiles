@@ -43,6 +43,13 @@ fi
 
 [ $# -gt 0 ] || exit 0
 
+# 금지어를 부분 문자열로 품고 있지만 그 자체로는 정당한 합성어.
+# 한국어 금지어는 조사가 붙어 "게이트를" 처럼 쓰이므로 부분 문자열로 찾아야 한다.
+# 그래서 "게이트웨이"(gateway) 처럼 다른 낱말인 경우도 같이 걸린다.
+# 뒤 글자가 한글인지로는 조사와 합성어를 가를 수 없어, 예외는 여기에 명시한다.
+# 검사 전에 이 낱말들을 줄에서 지우므로, 같은 줄에 맨 "게이트" 가 따로 있으면 그건 여전히 잡힌다.
+COMPOUND_ALLOW='게이트웨이'
+
 # 매핑 표 첫 열에서 금지어를 뽑는다.
 #   "클램프 / clamp"     → 클램프, clamp   (슬래시는 동의어 구분)
 #   "게이트 (gate)"      → 게이트, gate    (괄호 안 영어 원어도 금지어)
@@ -82,13 +89,14 @@ for f in "$@"; do
   # 규칙 파일 자신은 건너뛴다 — 매핑 표가 곧 금지어 목록이라 전부 위반으로 잡힌다.
   [ "$f" -ef "$RULES" ] && continue
 
-  printf '%s\n' "$TERMS" | awk -v F="$f" '
+  printf '%s\n' "$TERMS" | awk -v F="$f" -v ALLOW="$COMPOUND_ALLOW" '
     NR == FNR { terms[FNR] = $0; cnt = FNR; next }
     /^```/ { code = !code; next }
     code { next }
     {
       line = $0
       gsub(/`[^`]*`/, "", line)                       # 코드 스팬 제외
+      if (ALLOW != "") gsub(ALLOW, "", line)          # 정당한 합성어 제외
       for (i = 1; i <= cnt; i++) {
         t = terms[i]
         if (t ~ /^[A-Za-z-]+$/) {                     # 영문 용어는 단어 경계로
