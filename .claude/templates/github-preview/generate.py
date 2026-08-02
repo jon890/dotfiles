@@ -14,7 +14,7 @@ Dooray 미리보기(~/.claude/templates/dooray-preview/) 와 같은 구조 — v
         --title "markdown 표: th+td 혼합 첫 행 헤더 중복 잔존" \
         --md-file /tmp/gh-body.md \
         --out /tmp/gh-preview.html
-    cmux browser open "file:///tmp/gh-preview.html"
+    orca tab create --url "file:///tmp/gh-preview.html"
 
 주의:
 - markdown 본문에 '</script>' 문자열이 있으면 안 된다 (text/markdown 블록이 깨진다).

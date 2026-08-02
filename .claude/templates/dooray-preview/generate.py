@@ -11,7 +11,7 @@ Dooray 는 본문을 TOAST UI Editor 로 렌더링하므로, 같은 viewer CSS/J
         --meta "담당자:김병태" --meta "참조:개발 그룹" \
         --md-file /tmp/body.md \
         --out /tmp/dooray-preview.html
-    cmux browser open "file:///tmp/dooray-preview.html"
+    orca tab create --url "file:///tmp/dooray-preview.html"
 
 주의:
 - markdown 본문에 '</script>' 문자열이 있으면 안 된다 (text/plain 블록이 깨짐).

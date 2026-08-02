@@ -85,11 +85,28 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 <!-- OMC:END -->
 
-## Terminal Environment: cmux
+## 브라우저 자동화: Orca 내장 브라우저
 
-이 환경은 **cmux**(plain tmux 아님) 위에서 실행된다. 수동으로 터미널을 제어할 때는 tmux 대신 cmux CLI 를 쓰고, cmux 가 없으면 tmux 로 폴백한다.
+브라우저를 조작해야 하는 작업(사내 결재 서식 작성, GRM 공수 입력, 미리보기 띄우기)은 **Orca 내장 브라우저**를 쓴다.
+`orca` CLI 의 Browser Automation 명령군(`tab create`·`goto`·`snapshot`·`eval`·`screenshot` 등)이 진입점이다.
 
-cmux 명령어·감지 패턴·claude-teams·tmux 폴백 전체: @~/.claude/rules/cmux-guide.md
+직접 `orca` 를 부르지 말고 공용 헬퍼 `~/.claude/scripts/orca-browser.sh` 를 쓴다 — `orca` 는 **실패해도 종료 코드가 0** 이라 오류가 조용히 묻히는데, 헬퍼가 `ok:false` 를 종료 코드 1 로 바꿔 준다.
+
+```bash
+H=~/.claude/scripts/orca-browser.sh
+PAGE=$($H open "<url>")               # 탭 생성 + 로드 완료 대기 → page id
+$H js     "$PAGE" "<JS>"              # 페이지에서 JS 실행
+$H waitjs "$PAGE" "<조건 JS>" 10000   # 조건이 참이 될 때까지 대기
+$H url    "$PAGE"                     # 현재 URL
+$H snap   "$PAGE"                     # 접근성 snapshot (ref=e1 형태)
+$H nav    "$PAGE" "<url>"             # 이동 + 로드 완료 대기
+$H close  "$PAGE"
+```
+
+실측으로 확인한 함정 두 가지:
+
+- **`orca wait --load` 는 쓰지 않는다** — 이미 로드된 페이지에서도 항상 timeout 이다. 헬퍼의 `open`/`nav`/`waitjs` 를 쓴다.
+- **`orca click`·`fill`·`select` 는 CSS 선택자를 받지 않고 snapshot ref 만 받는다** — hidden element 나 overlay 를 다룰 때는 `$H js` 로 `querySelector(...)` 를 직접 조작한다.
 
 **주의**: OMC `/team`·`/omc-teams` 는 내부적으로 tmux 바이너리를 직접 호출하므로 tmux 는 별도로 설치돼 있어야 한다.
 
