@@ -108,8 +108,6 @@ $H close  "$PAGE"
 - **`orca wait --load` 는 쓰지 않는다** — 이미 로드된 페이지에서도 항상 timeout 이다. 헬퍼의 `open`/`nav`/`waitjs` 를 쓴다.
 - **`orca click`·`fill`·`select` 는 CSS 선택자를 받지 않고 snapshot ref 만 받는다** — hidden element 나 overlay 를 다룰 때는 `$H js` 로 `querySelector(...)` 를 직접 조작한다.
 
-**주의**: OMC `/team`·`/omc-teams` 는 내부적으로 tmux 바이너리를 직접 호출하므로 tmux 는 별도로 설치돼 있어야 한다.
-
 ## 백그라운드 작업 대기 (sleep 금지)
 
 `sleep N; <확인>` 패턴으로 백그라운드 작업 완료를 기다리지 않는다.
