@@ -283,7 +283,10 @@ JSON 파서는 `한` 과 `한` 을 같은 값으로 읽으므로, 정확히 쓰�
 - **도구**: qmd MCP `qmd-brain` (상시 제공 — 컬렉션·쿼리 타입·예시는 MCP 서버 지침 참조). MCP 없으면 qmd CLI. 워크플로는 `brain-search` skill.
 - **컬렉션**: `brain-wiki`·`brain-raw` (공개), `brain-private` (로컬 전용).
 - **라우팅**: 검색 전 각 네임스페이스 `wiki/INDEX.md` (살아있는 카탈로그)로 후보 영역을 잡고 qmd 로 좁힌다.
-- **qmd 복구**: `better-sqlite3 재컴파일` 류 에러는 node ABI 불일치 — `touch ~/.bun/install/global/node_modules/@tobilu/qmd/bun.lock` 로 복구 시도 (원리는 `~/personal/fos-brain/CLAUDE.md` "런타임 함정").
+- **qmd 런타임**: `~/.local/bin-pinned/qmd` wrapper 가 node 24.15.0 을 못박아 실행한다.
+    - `~/.zshenv.d/10-pinned-bin.sh` 가 이 디렉터리를 mise shim 보다 앞에 놓는다. mise shim 을 타면 디렉터리마다 node 버전이 바뀌어 `better-sqlite3` ABI 가 어긋난다.
+    - 복구: `which qmd` 가 wrapper 를 가리키는지, 고정한 node 버전이 아직 설치돼 있는지 확인한다.
+    - `bun.lock` touch 는 해결책이 아니다 — 오히려 런처를 bun 으로 몰아 `spawn bun ENOENT` 를 만든다 (bun 은 PATH 에 없다). 상세는 `~/personal/fos-brain/CLAUDE.md` "런타임 함정".
 
 ### 자동 참조 (search)
 
