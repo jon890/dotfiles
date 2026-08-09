@@ -63,3 +63,4 @@ if (( ${+commands[zoxide]} )); then
   alias cd="z"
   alias cdi="zi"
 fi
+
