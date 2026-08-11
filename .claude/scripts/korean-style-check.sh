@@ -106,9 +106,9 @@ for f in "$@"; do
           print F ":" FNR ": 금지어 \"" t "\" — korean-style 매핑 표의 권장 표현으로"
         }
       }
-      # 헤딩은 제외 — markdown-readability 8 이 제목에서는 + 를 허용한다.
+      # 제목은 제외한다. 이 검사는 본문의 인라인 항목 연결만 다룬다.
       if (line ~ / \+ / && line !~ /^#+ /)
-        print F ":" FNR ": 인라인 + 연결 — 쉼표·와/과 또는 목록으로 (markdown-readability 8)"
+        print F ":" FNR ": 인라인 + 연결 — 쉼표·와/과 또는 목록으로"
     }
   ' - "$f"
 done
