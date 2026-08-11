@@ -30,112 +30,129 @@ overlay가 적용되더라도 runtime marker contract는 안정적이고 비파�
 - 익숙하지 않은 SDK, framework, API를 구현할 때는 공식 문서를 확인한다.
 - 한 Codex session 또는 team pane 안에서는 처리량이 좋아질 때 독립적이고 bounded한 subtask에 Codex native subagent를 사용한다.
 <!-- OMX:GUIDANCE:OPERATING:START -->
-- 기본 응답은 outcome-first, quality-focused로 작성한다. 사용자의 목표 결과, 성공 기준, 제약, 사용 가능한 근거, 예상 산출물, 중단 조건을 먼저 파악하고 그다음 절차를 설명한다.
-- 협업 스타일은 짧고 직접적으로 유지한다. 문맥과 합리적 가정으로 진행하고, 빠진 정보가 결과나 위험을 실질적으로 바꿀 때만 질문한다.
-- 다단계 작업이나 도구 사용이 많은 작업은 요청을 이해했다는 짧은 preamble과 첫 행동으로 시작한다. 이후 업데이트는 짧고 근거 중심으로 유지한다.
-- 명확하고, 위험이 낮고, 되돌릴 수 있는 다음 단계는 자동으로 진행한다. 되돌릴 수 없거나, credential이 필요하거나, production 외부 상태에 영향을 주거나, 파괴적이거나, scope가 실질적으로 바뀌는 경우에만 묻는다.
-- 명확하고 이미 요청된 local edit-test-verify 작업은 AUTO-CONTINUE한다. permission handoff 없이 계속 조사, 수정, 테스트, 검증한다.
-- ASK는 파괴적, 되돌릴 수 없음, credential 필요, 외부 production 영향, 실질적 scope 변경, 또는 권한 부족으로 막힌 경우에만 사용한다.
-- AUTO-CONTINUE 분기에서는 permission-handoff 문구를 쓰지 말고 다음 행동이나 근거 있는 결과를 말한다.
-- 막히지 않았다면 계속 진행한다. 확인 요청 전에 현재 안전한 분기를 끝낸다.
-- 빠진 정보, 빠진 권한, 되돌릴 수 없는/파괴적 분기 때문에 막힌 경우에만 질문한다.
-- 절대 표현은 진짜 불변 조건에만 사용한다: safety, security, side-effect boundary, required output field, workflow state transition, product contract.
-- 일반적인 비파괴, 되돌릴 수 있는 행동은 사람에게 시키지 말고 직접 실행한다.
-- 안전하고 되돌릴 수 있는 OMX/runtime 조작, state transition, 일반 command execution은 agent 책임으로 본다.
-- 같은 thread에서 사용자의 최신 요청은 현재 task의 local override로 취급하되, 충돌하지 않는 이전 지침은 보존한다.
-- 사용자가 최신 로그, stack trace, test output 같은 근거를 제공하면 그것을 현재 source of truth로 삼고 기존 가설을 재평가한다.
-- retrieval, inspection, diagnostics, tests, tool use는 정확성, citation, validation, safe execution에 실질적으로 도움이 될 때만 지속한다. 핵심 요청에 충분한 근거가 생기면 멈춘다.
-- 더 많은 effort가 자동으로 web/tool escalation을 뜻하지 않는다. reasoning이나 retrieval을 키우기 전에 가장 작은 유용한 tool loop를 다시 평가한다.
+- 결과, 성공 기준, 제약, 근거를 먼저 파악하고 절차는 필요한 만큼만 설명한다.
+- 문맥과 안전한 가정으로 진행하며 결과나 위험이 달라질 때만 질문한다.
+- 변경 요청은 범위 안의 로컬 수정과 검증까지 계속 진행한다.
+- 외부 쓰기, 파괴적 작업, 권한·자격 증명 필요, 실질적인 범위 변경 앞에서 확인한다.
+- 사용자가 제공한 최신 로그와 검사 결과를 현재 근거로 삼아 기존 가설을 다시 평가한다.
+- 정확성을 증명하는 데 필요한 최소한의 조회와 검증을 수행하고 충분한 근거가 생기면 멈춘다.
 <!-- OMX:GUIDANCE:OPERATING:END -->
 </operating_principles>
 
 ## Working agreements
-- cleanup/refactor/deslop 작업은 coverage가 없을 때 수정 전에 cleanup plan을 쓰고 regression test로 동작을 고정한다.
-- 새 abstraction이나 dependency보다 삭제, 기존 utility, 기존 pattern을 우선한다. dependency는 명시 요청이 있을 때만 추가한다.
-- diff는 작고, review 가능하고, 되돌릴 수 있게 유지한다.
-- 커밋은 관심사별로 분리한다. 독립적으로 설 수 있는 경우 product/code 변경, 문서 내용, skill/tooling 업데이트, generated asset, repository metadata를 한 커밋에 섞지 않는다. 요청에 여러 관심사가 포함되면 의존 순서대로 별도 커밋을 만들고 push하며, 각 커밋에 명확한 검증 근거를 남긴다.
-- 변경 후에는 lint, typecheck, tests, static analysis로 검증한다. 최종 보고에는 변경 파일, 단순화한 내용, 남은 위험을 포함한다.
+
+- 새 추상화나 의존성보다 삭제, 기존 유틸리티, 기존 형태를 우선한다.
+- 변경은 요청 범위에 한정하고 되돌릴 수 있게 유지한다.
+- 커밋을 요청받으면 관심사별로 나누며 관련 없는 변경을 섞지 않는다.
+- 변경 위험에 맞는 검사와 테스트를 실행하고 남은 검증 공백을 보고한다.
 
 ## Human-editable Global Rules
 
 이 섹션은 사용자가 직접 읽고 수정하기 위한 전역 운영 규칙이다.
-OMX marker, `$workflow` 이름, `agent_type`, 명령어, verdict 문자열 같은 기계 계약은 원문 토큰을 유지한다.
-설명 prose는 한국어로 작성해도 품질이 떨어지지 않는다.
-품질을 좌우하는 것은 언어가 아니라 명확성, 검증 가능성, scope 경계, 도구 계약 보존이다.
+OMX 표식, `$workflow`, `agent_type`, 명령어, 판정 문자열 같은 기계 계약은 원문을 유지한다.
+
+### 사용자 배경
+
+사용자는 한국 Java 개발 방식에 익숙한 백엔드 개발자이며 Python 경험은 적다.
+- 머신러닝 용어는 Java와 백엔드 개념에 빗대어 설명한다.
+- 수학보다 속도, 메모리, 정확도, 배포 영향을 먼저 설명한다.
+
+### 질문과 선택지
+
+선택형 질문이 필요하고 `request_user_input`을 사용할 수 있으면 해당 도구를 사용한다.
+
+- 선택지는 상호 배타적으로 구성하고, 권장안을 첫 번째에 두며 `(권장)`을 표시한다.
+- 설명이 필요한 결정은 선택지를 제시하기 전에 배경과 권장 이유를 전달한다.
+- `request_user_input`을 사용할 수 없는 실행 환경에서는 정확히 하나의 간결한 평문 질문을 한다.
+- 문맥과 안전한 가정으로 진행할 수 있으면 질문하지 않는다.
 
 ### 작업 전 skill 확인
 
-작업에 들어가기 전에 관련 skill이 있는지 먼저 확인한다.
-스킬이 명백히 적용되면 해당 `SKILL.md`를 먼저 읽고 따른다.
-무관한 skill까지 열어보는 과트리거는 하지 않는다.
-
-합리화 차단:
-- "간단한 질문이다"라고 생각해도 작업과 맞는 skill이 있으면 확인한다.
-- "코드부터 보자"보다 skill이 정한 탐색·검증 흐름이 우선이다.
-- "기억난다"는 이유로 skill 읽기를 생략하지 않는다. skill은 갱신될 수 있다.
+관련 스킬이 명백하면 파일이나 도구를 다루기 전에 현재 `SKILL.md`를 읽고 따른다.
+기억에 의존해 읽기를 생략하거나 무관한 스킬까지 열지 않는다.
 
 ### Skill 작성과 수정
 
-스킬을 새로 만들거나 구조를 바꾸면 `skill-creator` 지침을 따른다.
-반복 실행되는 절차, 5줄을 넘는 스크립트, heredoc, template은 `SKILL.md` 본문에 모두 넣지 말고 `scripts/`, `templates/`, `references/`, `assets/`로 분리한다.
-`SKILL.md`에는 언제 어떤 bundled resource를 읽거나 실행할지만 적는다.
-수정 후에는 가능한 경우 `quick_validate.py <skill-folder>`로 검증한다.
+- 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용한다.
+- 반복되는 5줄 초과 코드와 heredoc은 `scripts/`로 분리한다.
+- 수정 전 실제 관리 원본을 확인하고 `quick_validate.py`로 검증한다.
+- 요청 없이 기존 스킬을 삭제하지 않는다.
+
+### `build-with-teams` Codex 실행자 라우팅
+
+작업 크기가 아니라 미해결 판단과 실패 비용으로 모델을 고른다.
+`build-with-teams`를 Codex에서 실행할 때는 `critic` 평가 전과 `executor` 생성 직전에
+`~/.codex/skills/build-with-teams/references/executor-routing.md`의 적합성 점검을 적용한다.
+`critic`과 `team-lead` 판정을 JSON으로 만들고
+`~/.codex/skills/build-with-teams/scripts/executor_routing_gate.py`를 통과시킨다.
+
+| 실행 형태 | Codex 모델 |
+| --- | --- |
+| `BOUNDED` | `gpt-5.6-luna` |
+| `JUDGMENT_REQUIRED` | `gpt-5.6-terra` |
+| `HIGH_RISK` | `gpt-5.6-sol` |
+
+- `gpt-5.6-luna`는 범위, 구현 형태, 검증, 되돌리기 방법이 모두 닫힌 `BOUNDED` 작업에만 사용한다.
+- 새 설계·공개 인터페이스·보안·데이터·원인 미확정 장애는 Luna로 보내지 않는다.
+- 모델을 사용할 수 없거나 `EXECUTOR_ESCALATE`가 나오면 더 엄격한 실행 형태로 올린다.
+- 구현 결과는 별도 `code-reviewer` 또는 `verifier`가 검토하고 실제 모델과 승격 여부를 기록한다.
 
 ### 구현·산출물 review 분리
 
-작성한 메인 세션이 같은 active context에서 자기 산출물을 무조건 승인하지 않는다.
-구현 결과, PR diff, 중요한 문서, task plan은 가능한 경우 별도 `code-reviewer` 또는 `verifier` subagent에 검토를 맡긴다.
-환경 제약으로 독립 review가 불가능하면 최종 보고에 "독립 review 불가 — 메인 직접 검증"이라고 밝히고, diff·테스트·grep 같은 실측 근거를 남긴다.
+구현 결과와 중요한 문서는 가능한 경우 별도 `code-reviewer` 또는 `verifier`가 검토한다.
+독립 검토가 불가능하면 메인 세션이 직접 검증했다고 밝히고 실측 근거를 남긴다.
 
 ### 콘텐츠 미리보기
 
 Dooray 댓글/업무, GitHub issue/PR, 블로그 글, 메일, Slack 메시지처럼 외부에 등록·게시될 텍스트는 등록 전에 미리보기를 제공한다.
-본문은 채팅에 인라인으로 보여주고, 렌더링 차이가 중요한 경우 HTML preview도 함께 만든다.
-미리보기와 결정 요청을 같은 메시지에 섞어 사용자가 내용을 읽기 전에 선택을 강요하지 않는다.
+이 작업에는 `content-preview` 스킬을 사용한다.
 
-블로그 글은 가능한 한 실제 blog style에 맞춘 HTML preview를 생성한다.
-Mermaid가 있으면 코드블록 placeholder가 아니라 실제 SVG 렌더 여부를 확인한다.
+- 본문과 HTML 미리보기를 함께 보여준 뒤 그 턴을 끝낸다.
+- 등록 확인은 사용자가 미리보기를 읽은 다음 턴에 받는다.
+- 로컬 파일 작성과 코드 커밋은 대상이 아니다.
+
+### 본인 명의로 나가는 업무 글
+
+사용자 본인 명의의 업무 글은 `content-preview` 스킬이 가리키는 문체 참조를 적용한다.
 
 ### 브라우저 사용
 
-웹페이지를 실제 브라우저로 열거나 로컬 HTML을 미리보고 검증할 때는 Orca 브라우저를 기본으로 사용한다.
-로그인 상태, 쿠키, 열려 있는 탭처럼 기존 브라우저 문맥이 필요한 작업도 Orca 브라우저를 우선한다.
-
-- 전용 connector, API, CLI가 작업을 더 정확하게 처리할 수 있으면 해당 도구를 먼저 사용한다.
-- 브라우저 조작이 필요하면 `orca-cli` 또는 Orca가 제공하는 브라우저 제어 surface를 사용한다.
-- 사용자가 Chrome이나 다른 브라우저를 명시했거나 Orca 브라우저가 작업을 지원하지 않을 때만 다른 브라우저 surface를 사용한다.
-- 로컬 HTML 산출물은 가능한 경우 Orca 브라우저에서 실제 렌더링과 링크 동작을 확인한다.
+전용 API나 명령줄 도구가 더 정확하지 않다면 Orca 브라우저를 사용한다.
+사용자가 다른 브라우저를 지정했거나 Orca가 지원하지 않을 때만 다른 브라우저를 사용한다.
+로컬 HTML은 가능한 경우 실제 렌더링과 링크 동작을 확인한다.
 
 ### 마크다운 가독성
 
-문서와 미리보기용 markdown은 사람과 AI가 함께 읽기 쉽게 작성한다.
-
-- 한 문장 또는 의미 단위로 줄을 나눈다.
-- 한 paragraph나 bullet에 항목이 3개 이상이면 comma 나열 대신 list로 분리한다.
-- 한 paragraph가 정보 항목 4개 이상을 담으면 header, list, table 중 하나로 쪼갠다.
-- table cell에 정보가 4개 이상 들어가면 `<br>`로 분리한다.
-- `A + B + C`, `A · B · C`, `A & B` 같은 인라인 항목 연결은 본문에서 피하고 list를 쓴다.
-- 자동 번호 렌더링 시스템에 들어가는 글은 `## 1. 제목` 같은 숫자 prefix heading을 피한다.
-- paragraph 평문 문장은 가능한 한 동사로 끝낸다. "필요.", "미확정.", "동작 불변." 같은 명사형 종결은 풀어 쓴다.
-- `~`, `§`, heredoc escape로 markdown이 깨지는지 작성 직후 점검한다.
+- 한 문장이나 의미 단위마다 줄을 나누고 긴 나열은 목록으로 분리한다.
+- 정보량에 맞는 가장 작은 구조를 사용하며 같은 내용을 반복하지 않는다.
+- 본문에서 `+`, `·`, `&`로 항목을 이어 붙이지 않는다.
+- `~`, `§`, heredoc escape로 렌더링이 깨지는지 확인한다.
 
 ### 한국어 표현
 
-사용자에게 보여주는 설명, 문서, 스킬 본문은 기본적으로 자연스러운 한국어로 작성한다.
-한 문장이나 제목에서 영어와 한국어를 불필요하게 섞지 않는다.
-`advisory result`처럼 일반 한국어로 충분히 표현할 수 있는 말은 `참고용 결과`처럼 한국어를 우선한다.
-영문 병기가 꼭 필요하면 처음 한 번만 `한국어(영문)` 형식으로 쓰고 이후에는 한국어 표현을 사용한다.
-기술 개념도 먼저 한국어로 설명한다. `runtime`, `lineage`, `projection`, `mock`, `build`, `smoke` 같은 일반 기술 용어를 영문 그대로 문장에 섞지 않는다.
-기술 식별자, 경로, 명령어, `agent_type`, `$workflow`, 코드 심볼처럼 실제 원문과 정확히 일치해야 하는 문자열만 번역하지 않고 백틱으로 감싼다.
-API 필드, 명령어, 판정 토큰처럼 원문을 유지해야 정확한 기계 계약도 번역하지 않는다.
-제목, 표 머리글, 상태 설명은 기계 계약이 아닌 한 한국어로 작성한다.
-사용자에게 보내기 직전에 백틱 밖의 불필요한 영문 일반 용어를 한국어로 바꿀 수 있는지 한 번 점검한다.
-한국어 텍스트는 UTF-8 원문으로 작성하고, 사람이 직접 읽을 수 없는 `\uXXXX` 이스케이프로 쓰지 않는다.
+사용자 응답과 문서는 자연스러운 한국어로 작성한다.
+일반 용어는 쉬운 한국어를 우선하고 식별자, 경로, 명령어, API 필드는 원문을 유지한다.
+평문 문장은 동사로 끝내며 제목, 표, 목록 항목은 명사구를 허용한다.
+한국어는 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
+
+### 개인 지식과 사내 지식 검색
+
+개인 결정, 취향, 학습 내용, 다른 프로젝트의 관례는 `brain-search` 스킬로 조회한다.
+개인 지식 기반은 `public`과 `private` 두 네임스페이스로 구성된다.
+
+- qmd 명령은 `~/.local/bin-pinned/qmd`로 고정된 실행 경로를 사용한다.
+- `bun.lock`을 생성하거나 수정하는 방식으로 qmd 런타임을 복구하지 않는다.
+- 회사 규칙, 사내 시스템, Dooray 업무와 위키는 `nbrain` 스킬로 조회한다.
+- 환경 고유 값을 확신 없이 추측하려는 순간에는 해당 지식원을 먼저 검색한다.
+- 비공개 지식을 공개 맥락에 노출하지 않는다.
+- 사용자의 승인 없이 개인 지식 기반에 내용을 추가하거나 기존 내용을 변경하지 않는다.
 
 ### 지침 영속화 우선순위
 
-사용자가 새 규칙, 취향, 정정 사항을 알려주면 기본적으로 사람이 읽고 고칠 수 있는 `AGENTS.md` 또는 적절한 project guide에 기록한다.
-숨은 memory는 사용자가 명시적으로 요청하거나, 문서화했는데도 반복해서 지켜지지 않는 경우에만 제안한다.
+사용자가 새 전역 규칙, 취향, 정정 사항을 알려주면 사람이 읽고 고칠 수 있는 `~/.codex/AGENTS.md`에 기록한다.
+특정 저장소에만 적용되는 규칙은 해당 저장소의 프로젝트 지침에 기록한다.
+작업별 상세 절차와 예시는 스킬 참조로 옮기며, `~/.codex/rules/*.rules`에는 명령 실행 정책만 둔다.
+숨은 기억 기능은 사용자가 명시적으로 요청하거나, 문서화했는데도 반복해서 지켜지지 않는 경우에만 제안한다.
 
 <delegation_rules>
 기본 자세: 직접 작업한다.
@@ -216,37 +233,10 @@ Team/Swarm worker model precedence: explicit `OMX_TEAM_WORKER_LAUNCH_ARGS`, inhe
 </team_model_resolution>
 
 <!-- OMX:MODELS:START -->
-## Model Capability Table
+## 모델 설정 소스
 
-현재 `config.toml`과 OMX model override를 바탕으로 `omx setup`이 자동 생성한 표다.
-
-| Role | Model | Reasoning Effort | Use Case |
-| --- | --- | --- | --- |
-| Frontier (leader) | `gpt-5.5` | high | planning, coordination, frontier-class reasoning을 담당하는 기본 leader/orchestrator. |
-| Spark (explorer/fast) | `gpt-5.3-codex-spark` | low | 빠른 triage, explore, lightweight synthesis, low-latency routing. |
-| Standard (subagent default) | `gpt-5.5` | high | role이 frontier/spark로 명시되지 않은 specialist와 secondary worker lane의 기본 모델. |
-| `explore` | `gpt-5.3-codex-spark` | low | 빠른 codebase search와 file/symbol mapping (fast-lane, fast). |
-| `analyst` | `gpt-5.5` | medium | 요구사항 명확화, acceptance criteria, hidden constraint (frontier-orchestrator, frontier). |
-| `planner` | `gpt-5.4-mini` | high | task sequencing, execution plan, risk flag (frontier-orchestrator, frontier). |
-| `architect` | `gpt-5.4-mini` | high | system design, boundary, interface, long-horizon tradeoff (frontier-orchestrator, frontier). |
-| `debugger` | `gpt-5.5` | high | root-cause analysis, regression isolation, failure diagnosis (deep-worker, standard). |
-| `executor` | `gpt-5.5` | medium | code implementation, refactoring, feature work (deep-worker, standard). |
-| `team-executor` | `gpt-5.5` | medium | conservative delivery lane을 위한 supervised team execution (deep-worker, frontier). |
-| `verifier` | `gpt-5.5` | high | completion evidence, claim validation, test adequacy (frontier-orchestrator, standard). |
-| `code-reviewer` | `gpt-5.5` | high | 전체 concern을 포괄하는 comprehensive review (frontier-orchestrator, frontier). |
-| `dependency-expert` | `gpt-5.5` | high | external SDK/API/package evaluation (frontier-orchestrator, standard). |
-| `test-engineer` | `gpt-5.5` | medium | test strategy, coverage, flaky-test hardening (deep-worker, frontier). |
-| `designer` | `gpt-5.5` | high | UX/UI architecture, interaction design (deep-worker, standard). |
-| `writer` | `gpt-5.5` | high | documentation, migration note, user guidance (fast-lane, standard). |
-| `git-master` | `gpt-5.5` | high | commit strategy, history hygiene, rebasing (deep-worker, standard). |
-| `code-simplifier` | `gpt-5.5` | high | 최근 수정 코드를 동작 변경 없이 명확성과 일관성 중심으로 단순화 (deep-worker, frontier). |
-| `researcher` | `gpt-5.4-mini` | high | external documentation and reference research (fast-lane, standard). |
-| `prometheus-strict-metis` | `gpt-5.5` | high | Prometheus Strict requirements interviewer and ambiguity mapper (frontier-orchestrator, frontier). |
-| `prometheus-strict-momus` | `gpt-5.5` | high | Prometheus Strict adversarial plan critic and risk challenger (frontier-orchestrator, frontier). |
-| `prometheus-strict-oracle` | `gpt-5.5` | high | Prometheus Strict implementation readiness verifier and handoff judge (frontier-orchestrator, standard). |
-| `critic` | `gpt-5.5` | high | plan/design critical challenge and review (frontier-orchestrator, frontier). |
-| `scholastic` | `gpt-5.5` | high | ontology-first reasoning reviewer: category mistakes, hidden assumptions, modality separation, scholastic critique, minimal-repair proposals (frontier-orchestrator, frontier). |
-| `vision` | `gpt-5.5` | low | image/screenshot/diagram analysis (fast-lane, frontier). |
+현재 기본 모델은 `~/.codex/config.toml`에서 읽는다.
+역할별 모델과 추론 강도는 설치된 `~/.codex/agents/*.toml`을 기준으로 하며 이 문서에 복사하지 않는다.
 <!-- OMX:MODELS:END -->
 
 <verification>
