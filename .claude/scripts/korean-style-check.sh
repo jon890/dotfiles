@@ -9,6 +9,11 @@
 # 위반 줄을 stdout 으로 출력한다. 출력이 0 줄이면 통과.
 # 코드 블록(```)과 코드 스팬(`...`)은 렌더·표기 대상이 아니라 검사에서 제외한다.
 #
+# 종료 코드 — CI 와 스크립트가 실패로 잡을 수 있게 결과를 코드로도 낸다.
+#   0  통과 (--hook 모드는 위반이 있어도 늘 0 이다. 훅은 작업을 막지 않는다)
+#   1  위반 발견
+#   2  검사기가 돌지 못함 (매핑 표에서 금지어를 추출하지 못한 경우)
+#
 # 편집 직후 자동 검사 (settings.json 은 머신 로컬이라 추적하지 않으므로 여기 남긴다).
 # ~/.claude/settings.json 의 hooks 에 아래를 넣으면 .md 를 쓸 때마다 검사한다:
 #
@@ -83,13 +88,17 @@ if [ -z "$TERMS" ]; then
   exit 2
 fi
 
+# 위반을 하나라도 만나면 1 로 끝낸다.
+# 검사는 끝까지 돌린다 — 첫 파일에서 멈추면 나머지 위반이 안 보인다.
+status=0
+
 for f in "$@"; do
   case "$f" in *.md) ;; *) continue ;; esac
   [ -f "$f" ] || continue
   # 규칙 파일 자신은 건너뛴다 — 매핑 표가 곧 금지어 목록이라 전부 위반으로 잡힌다.
   [ "$f" -ef "$RULES" ] && continue
 
-  printf '%s\n' "$TERMS" | awk -v F="$f" -v ALLOW="$COMPOUND_ALLOW" '
+  found=$(printf '%s\n' "$TERMS" | awk -v F="$f" -v ALLOW="$COMPOUND_ALLOW" '
     NR == FNR { terms[FNR] = $0; cnt = FNR; next }
     /^```/ { code = !code; next }
     code { next }
@@ -110,5 +119,12 @@ for f in "$@"; do
       if (line ~ / \+ / && line !~ /^#+ /)
         print F ":" FNR ": 인라인 + 연결 — 쉼표·와/과 또는 목록으로"
     }
-  ' - "$f"
+  ' - "$f")
+
+  if [ -n "$found" ]; then
+    printf '%s\n' "$found"
+    status=1
+  fi
 done
+
+exit "$status"

@@ -129,7 +129,7 @@ Dooray 댓글/업무, GitHub issue/PR, 블로그 글, 메일, Slack 메시지처
 - `~/.claude/rules/markdown-readability.md` — 한 문장 한 줄, 구조 선택, 렌더링 함정
 
 Codex 에는 이 규칙을 강제하는 훅이 없으므로 작성 직후 직접 확인한다.
-검사기는 수동으로 돌릴 수 있고, 출력이 없으면 통과다.
+두 검사기 모두 통과면 0, 위반이면 1, 검사기가 돌지 못하면 2 로 끝난다.
 
 ```bash
 ~/.claude/scripts/korean-style-check.sh <파일.md>
