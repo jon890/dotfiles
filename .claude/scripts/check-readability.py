@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """마크다운 가독성 규칙 중 기계로 판정 가능한 축을 검사한다.
 
-규칙의 단일 소스는 `~/.claude/rules/markdown-readability.md` 다.
+규칙의 단일 소스는 `~/.claude/rules/` 의 세 파일이다.
+# korean-style.md(언어), writing-structure.md(구조), markdown-readability.md(매체).
 
 사용법:
     check-readability.py <파일.md> [<파일.md>...]

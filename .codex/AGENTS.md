@@ -54,6 +54,7 @@ OMX 표식, `$workflow`, `agent_type`, 명령어, 판정 문자열 같은 기계
 ### 사용자 배경
 
 사용자는 한국 Java 개발 방식에 익숙한 백엔드 개발자이며 Python 경험은 적다.
+- AI 코딩 작업은 Codex CLI를 주로 사용하므로 안내와 자동화 경로도 Codex CLI를 기본으로 잡는다.
 - 머신러닝 용어는 Java와 백엔드 개념에 빗대어 설명한다.
 - 수학보다 속도, 메모리, 정확도, 배포 영향을 먼저 설명한다.
 
@@ -117,8 +118,10 @@ Dooray 댓글/업무, GitHub issue/PR, 블로그 글, 메일, Slack 메시지처
 
 ### 브라우저 사용
 
-전용 API나 명령줄 도구가 더 정확하지 않다면 Orca 브라우저를 사용한다.
-사용자가 다른 브라우저를 지정했거나 Orca가 지원하지 않을 때만 다른 브라우저를 사용한다.
+전용 API나 명령줄 도구가 더 정확하지 않다면 `Orca browser` 또는 `agent-browser`를 사용한다.
+Codex CLI에서 기존 Chrome 로그인 상태가 필요하면 `agent-browser --auto-connect`를 우선 검토한다.
+`computer-use`는 브라우저 도구로 다룰 수 없는 데스크톱 UI나 운영체제 상호작용에 사용한다.
+사용자가 다른 브라우저를 지정하면 해당 선택을 따른다.
 로컬 HTML은 가능한 경우 실제 렌더링과 링크 동작을 확인한다.
 
 ### 마크다운과 한국어 표현
@@ -126,7 +129,8 @@ Dooray 댓글/업무, GitHub issue/PR, 블로그 글, 메일, Slack 메시지처
 문서와 사용자 응답의 표현 규칙은 아래 두 파일이 단일 소스다. 문서를 쓰기 전에 읽는다.
 
 - `~/.claude/rules/korean-style.md` — 외래어 매핑 표, 쉬운 한국어 우선, 평문의 동사 종결
-- `~/.claude/rules/markdown-readability.md` — 한 문장 한 줄, 구조 선택, 렌더링 함정
+- `~/.claude/rules/writing-structure.md` — 분량 구간, 구조 선택, 내용 점검
+- `~/.claude/rules/markdown-readability.md` — 렌더링과 편집기 함정
 
 Codex 에는 이 규칙을 강제하는 훅이 없으므로 작성 직후 직접 확인한다.
 두 검사기 모두 통과면 0, 위반이면 1, 검사기가 돌지 못하면 2 로 끝난다.
