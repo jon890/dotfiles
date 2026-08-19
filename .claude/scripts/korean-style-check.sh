@@ -7,7 +7,9 @@
 #
 # 사용법: korean-style-check.sh <파일> [<파일>...]
 # 위반 줄을 stdout 으로 출력한다. 출력이 0 줄이면 통과.
-# 코드 블록(```)과 코드 스팬(`...`)은 렌더·표기 대상이 아니라 검사에서 제외한다.
+# 검사에서 제외하는 것 — 렌더·표기 대상이 아니거나 이미 구조화된 형식이다.
+#   코드 블록(```, 목록 안에 들여쓴 것 포함), 코드 스팬(`...`), 표 행, 제목, YAML frontmatter
+# 산술식은 제외 목록에 없다. `GPU 수 × (A + B)` 처럼 코드 스팬으로 감싸면 빠진다.
 #
 # 종료 코드 — CI 와 스크립트가 실패로 잡을 수 있게 결과를 코드로도 낸다.
 #   0  통과 (--hook 모드는 위반이 있어도 늘 0 이다. 훅은 작업을 막지 않는다)
@@ -100,7 +102,14 @@ for f in "$@"; do
 
   found=$(printf '%s\n' "$TERMS" | awk -v F="$f" -v ALLOW="$COMPOUND_ALLOW" '
     NR == FNR { terms[FNR] = $0; cnt = FNR; next }
-    /^```/ { code = !code; next }
+    # YAML frontmatter 는 건너뛴다. description 은 트리거 예시를 담고,
+    # triggers 는 검색 식별자라 금지어 자체가 값으로 들어가야 한다.
+    FNR == 1 && /^---[[:space:]]*$/ { front = 1; next }
+    front && /^---[[:space:]]*$/ { front = 0; next }
+    front { next }
+    # 코드 블록 펜스. 목록 안에 들여쓴 펜스도 토글해야 한다 —
+    # ^``` 로 1열에 고정하면 들여쓴 블록의 내용이 본문으로 검사된다.
+    /^[ \t]*```/ { code = !code; next }
     code { next }
     {
       line = $0
