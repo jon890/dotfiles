@@ -101,6 +101,30 @@ for f in "$@"; do
   [ "$f" -ef "$RULES" ] && continue
 
   found=$(printf '%s\n' "$TERMS" | awk -v F="$f" -v ALLOW="$COMPOUND_ALLOW" '
+    function strip_link_targets(s, out, p, rest, depth, i, ch, escaped, angle) {
+      out = ""
+      while ((p = index(s, "](")) > 0) {
+        out = out substr(s, 1, p)
+        rest = substr(s, p + 2)
+        depth = 1
+        escaped = 0
+        angle = (substr(rest, 1, 1) == "<")
+        for (i = 1; i <= length(rest); i++) {
+          ch = substr(rest, i, 1)
+          if (escaped) { escaped = 0; continue }
+          if (ch == "\\") { escaped = 1; continue }
+          if (angle) {
+            if (ch == ">") angle = 0
+            continue
+          }
+          if (ch == "(") depth++
+          else if (ch == ")" && --depth == 0) break
+        }
+        if (depth != 0) return out substr(s, p + 1)
+        s = substr(rest, i + 1)
+      }
+      return out s
+    }
     NR == FNR { terms[FNR] = $0; cnt = FNR; next }
     # YAML frontmatter 는 건너뛴다. description 은 트리거 예시를 담고,
     # triggers 는 검색 식별자라 금지어 자체가 값으로 들어가야 한다.
@@ -113,6 +137,16 @@ for f in "$@"; do
     code { next }
     {
       line = $0
+      heading = line
+      indent = 0
+      while (indent < 4 && substr(heading, 1, 1) == " ") {
+        heading = substr(heading, 2)
+        indent++
+      }
+      if ((indent <= 3 && heading ~ /^#+[ \t]/) ||
+          line ~ /^[ \t]*\|/ || line ~ /^[ \t]*\[[^]]+\]:[ \t]*/) next
+      line = strip_link_targets(line)                    # 링크 문구는 남기고 URL 제외
+      gsub(/<https?:\/\/[^>]*>/, "", line)             # 자동 링크 URL 제외
       gsub(/`[^`]*`/, "", line)                       # 코드 스팬 제외
       if (ALLOW != "") gsub(ALLOW, "", line)          # 정당한 합성어 제외
       for (i = 1; i <= cnt; i++) {
@@ -124,9 +158,7 @@ for f in "$@"; do
           print F ":" FNR ": 금지어 \"" t "\" — korean-style 매핑 표의 권장 표현으로"
         }
       }
-      # 제목과 표 행은 제외한다. 이 검사는 본문의 인라인 항목 연결만 다룬다.
-      # 표는 이미 구조화된 형식이라 셀 안의 " + " 는 나열이 아니라 값 표기다.
-      if (line ~ / \+ / && line !~ /^#+ / && line !~ /^[ \t]*\|/)
+      if (line ~ / \+ /)
         print F ":" FNR ": 인라인 + 연결 — 쉼표·와/과 또는 목록으로"
     }
   ' - "$f")
