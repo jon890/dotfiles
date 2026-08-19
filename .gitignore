@@ -49,11 +49,6 @@
 !.claude/scripts/
 .claude/scripts/*
 !.claude/scripts/*.sh
-!.claude/templates/
-!.claude/templates/**
-!.claude/skills/
-!.claude/skills/content-preview/
-!.claude/skills/content-preview/**
 
 # Codex 전역 instruction
 !.codex/
