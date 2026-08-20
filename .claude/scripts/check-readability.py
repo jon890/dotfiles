@@ -11,13 +11,18 @@
 위반 줄을 stdout 으로 출력한다. 출력이 0 줄이면 통과다.
 위반이 있으면 종료 코드 1, 사용법 오류면 2 로 끝난다.
 
-여기서 검사하는 것은 하나다.
+여기서 검사하는 것은 `markdown-readability.md` 가 소유한 매체·렌더 축이다.
 
     NEST   괄호 2겹 중첩
+    SECT   `§` 사용
+    TILDE  한 단락에 이스케이프하지 않은 물결표 2개 이상 (취소선 오작동)
+    DASH   제목과 평문의 엠대시 (목록과 표의 이름-설명 구분은 허용)
 
 나머지 축은 다른 곳이 맡는다.
 
 - 외래어와 인라인 `+` 연결은 `korean-style-check.sh` 가 강제한다
+- fos-blog 렌더러 고유 함정(bold 안 따옴표, heading 숫자 prefix 등)은
+  fos-study 의 `blog_score.py` 가 강제한다
 - 명사형 종결은 Dooray 본문에 한해 각 레포의 `verify-dooray-body.py` 가 잡는다
 - 한 문장 한 줄, `=` 와 `→` 압축, bullet 다중 속성은 의미 판단이 필요해 사람이 본다
 
@@ -32,6 +37,12 @@ import sys
 
 # 여는 괄호 안에서 다시 괄호가 열리고 닫히는 형태만 잡는다.
 NESTED_PAREN = re.compile(r"\([^()]*\([^()]*\)")
+
+# 목록 항목. 이름과 설명을 엠대시로 가르는 용도가 규칙상 허용이라 DASH 검사에서 뺀다.
+LIST_ITEM = re.compile(r"^([-*+]|\d+\.)\s")
+
+# 홈 경로의 물결표는 범위 표기가 아니다.
+HOME_PATH = re.compile(r"~/[\w./-]+")
 
 # 검사 전에 줄에서 지울 것. 남기면 이들 안의 문자가 위반으로 잡힌다.
 CODE_SPAN = re.compile(r"`[^`]*`")
@@ -52,11 +63,21 @@ def check(path):
     found = []
     in_fence = False
     in_front = False
+    para = []  # 물결표는 단락 단위로 세야 한다. 취소선이 단락 안에서 짝지어지기 때문이다.
+
+    def flush(para):
+        if not para:
+            return
+        first = para[0][0]
+        text = " ".join(t for _, t in para).replace("\\~", "")
+        if HOME_PATH.sub("", text).count("~") >= 2:
+            found.append((path, first, "TILDE",
+                          "한 단락에 물결표가 2개 이상이다: 취소선으로 렌더될 수 있어 이스케이프하거나 표현을 바꾼다"))
 
     try:
         lines = open(path, encoding="utf-8").read().splitlines()
     except OSError as e:
-        print(f"{path}: 읽기 실패 — {e}", file=sys.stderr)
+        print(f"{path}: 읽기 실패, {e}", file=sys.stderr)
         return found
 
     for n, raw in enumerate(lines, 1):
@@ -73,6 +94,8 @@ def check(path):
         # 코드 블록 안은 통째로 건너뛴다.
         if stripped.startswith("```"):
             in_fence = not in_fence
+            flush(para)
+            para = []
             continue
         if in_fence:
             continue
@@ -82,10 +105,31 @@ def check(path):
             continue
 
         line = strip_noise(raw)
+        body = line.lstrip("> ").strip()
+
+        if not body:
+            flush(para)
+            para = []
+            continue
+
+        para.append((n, body))
 
         if NESTED_PAREN.search(line):
-            found.append((path, n, "NEST", "괄호 2겹 중첩 — 별도 문장으로 나눈다"))
+            found.append((path, n, "NEST", "괄호 2겹 중첩: 별도 문장으로 나눈다"))
 
+        if "§" in line:
+            found.append((path, n, "SECT", "§ 대신 섹션이나 장, 또는 번호를 쓴다"))
+
+        # 엠대시. 목록 항목과 표 행에서 이름과 설명을 가르는 용도는 규칙이 허용한다.
+        if "\u2014" in body and not LIST_ITEM.match(body):
+            if body.startswith("#"):
+                found.append((path, n, "DASH",
+                              "제목의 엠대시: 부제를 떼고 한 문장으로 쓴다"))
+            else:
+                found.append((path, n, "DASH",
+                              "평문의 엠대시: 콜론이나 접속사로 바꾼다"))
+
+    flush(para)
     return found
 
 
