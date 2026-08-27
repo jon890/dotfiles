@@ -163,7 +163,7 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 등록 확인은 사용자가 미리보기를 읽은 다음 턴에 받는다.
 
 사용자 본인 명의의 업무 글은 업무 글 페르소나를 적용한다.
-관리 원본은 `~/.claude/skills/content-preview/references/work-writing-persona.md` 이며,
+관리 원본은 `~/.claude/references/work-writing-persona.md` 이며,
 작업 로그, 대외 회신, 업무 본문 세 모드의 문체를 정한다.
 
 **페르소나는 본문을 쓰기 시작하기 전에 읽는다.**
