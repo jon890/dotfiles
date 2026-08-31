@@ -52,6 +52,7 @@
 !.claude/scripts/
 .claude/scripts/*
 !.claude/scripts/*.sh
+!.claude/scripts/browser-driver
 
 # Codex 전역 instruction
 !.codex/
