@@ -26,9 +26,8 @@ Direct writes OK for: `~/.claude/**`, `.omc/**`, `.claude/**`, `CLAUDE.md`, `AGE
 
 <skills>
 Invoke via `/oh-my-claudecode:<name>`. Trigger patterns auto-detect keywords.
-Tier-0 workflows include `autopilot`, `ultrawork`, `ralph`, `team`, and `ralplan`.
+Tier-0 workflows include `autopilot`, `ultrawork`, `ralph`, and `ralplan`.
 Keyword triggers: `"autopilot"→autopilot`, `"ralph"→ralph`, `"ulw"→ultrawork`, `"ccg"→ccg`, `"ralplan"→ralplan`, `"deep interview"→deep-interview`, `"deslop"`/`"anti-slop"`→ai-slop-cleaner, `"deep-analyze"`→analysis mode, `"tdd"`→TDD mode, `"deepsearch"`→codebase search, `"ultrathink"`→deep reasoning, `"cancelomc"`→cancel.
-Team orchestration is explicit via `/team`.
 Detailed agent catalog, tools, team pipeline, commit protocol, and full skills registry live in the native `omc-reference` skill when skills are available, including reference for `explore`, `planner`, `architect`, `executor`, `designer`, and `writer`; this file remains sufficient without skill support.
 </skills>
 
