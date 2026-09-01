@@ -1,5 +1,5 @@
 <!-- OMC:START -->
-<!-- OMC:VERSION:4.8.2 -->
+<!-- OMC:VERSION:4.15.10 -->
 
 # oh-my-claudecode - Intelligent Multi-Agent Orchestration
 
@@ -7,12 +7,11 @@ You are running with oh-my-claudecode (OMC), a multi-agent orchestration layer f
 Coordinate specialized agents, tools, and skills so work is completed accurately and efficiently.
 
 <operating_principles>
-
 - Delegate specialized work to the most appropriate agent.
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
 - Consult official docs before implementing with SDKs/frameworks/APIs.
-  </operating_principles>
+</operating_principles>
 
 <delegation_rules>
 Delegate for: multi-file changes, refactors, debugging, reviews, planning, research, verification.
@@ -25,38 +24,24 @@ Route code to `executor` (use `model=opus` for complex work). Uncertain SDK usag
 Direct writes OK for: `~/.claude/**`, `.omc/**`, `.claude/**`, `CLAUDE.md`, `AGENTS.md`.
 </model_routing>
 
-<agent_catalog>
-Prefix: `oh-my-claudecode:`. See `agents/*.md` for full prompts.
-
-explore (haiku), analyst (opus), planner (opus), architect (opus), debugger (sonnet), executor (sonnet), verifier (sonnet), tracer (sonnet), security-reviewer (sonnet), code-reviewer (opus), test-engineer (sonnet), designer (sonnet), writer (haiku), qa-tester (sonnet), scientist (sonnet), document-specialist (sonnet), git-master (sonnet), code-simplifier (opus), critic (opus)
-</agent_catalog>
-
-<tools>
-External AI: `/team N:executor "task"`, `omc team N:codex|gemini "..."`, `omc ask <claude|codex|gemini>`, `/ccg`
-OMC State: `state_read`, `state_write`, `state_clear`, `state_list_active`, `state_get_status`
-Teams: `TeamCreate`, `TeamDelete`, `SendMessage`, `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`
-Notepad: `notepad_read`, `notepad_write_priority`, `notepad_write_working`, `notepad_write_manual`
-Project Memory: `project_memory_read`, `project_memory_write`, `project_memory_add_note`, `project_memory_add_directive`
-Code Intel: LSP (`lsp_hover`, `lsp_goto_definition`, `lsp_find_references`, `lsp_diagnostics`, etc.), AST (`ast_grep_search`, `ast_grep_replace`), `python_repl`
-</tools>
-
 <skills>
 Invoke via `/oh-my-claudecode:<name>`. Trigger patterns auto-detect keywords.
-
-Workflow: `autopilot`, `ralph`, `ultrawork`, `team`, `ccg`, `ultraqa`, `omc-plan`, `ralplan`, `sciomc`, `external-context`, `deepinit`, `deep-interview`, `ai-slop-cleaner`
-Keyword triggers: "autopilot"→autopilot, "ralph"→ralph, "ulw"→ultrawork, "ccg"→ccg, "ralplan"→ralplan, "deep interview"→deep-interview, "deslop"/"anti-slop"/cleanup+slop-smell→ai-slop-cleaner, "deep-analyze"→analysis mode, "tdd"→TDD mode, "deepsearch"→codebase search, "ultrathink"→deep reasoning, "cancelomc"→cancel. Team orchestration is explicit via `/team`.
-Utilities: `ask-codex`, `ask-gemini`, `cancel`, `note`, `learner`, `omc-setup`, `mcp-setup`, `hud`, `omc-doctor`, `omc-help`, `trace`, `release`, `project-session-manager`, `skill`, `writer-memory`, `ralph-init`, `configure-notifications`, `learn-about-omc` (`trace` is the evidence-driven tracing lane)
+Tier-0 workflows include `autopilot`, `ultrawork`, `ralph`, `team`, and `ralplan`.
+Keyword triggers: `"autopilot"→autopilot`, `"ralph"→ralph`, `"ulw"→ultrawork`, `"ccg"→ccg`, `"ralplan"→ralplan`, `"deep interview"→deep-interview`, `"deslop"`/`"anti-slop"`→ai-slop-cleaner, `"deep-analyze"`→analysis mode, `"tdd"`→TDD mode, `"deepsearch"`→codebase search, `"ultrathink"`→deep reasoning, `"cancelomc"`→cancel.
+Team orchestration is explicit via `/team`.
+Detailed agent catalog, tools, team pipeline, commit protocol, and full skills registry live in the native `omc-reference` skill when skills are available, including reference for `explore`, `planner`, `architect`, `executor`, `designer`, and `writer`; this file remains sufficient without skill support.
 </skills>
-
-<team_pipeline>
-Stages: `team-plan` → `team-prd` → `team-exec` → `team-verify` → `team-fix` (loop).
-Fix loop bounded by max attempts. `team ralph` links both modes.
-</team_pipeline>
 
 <verification>
 Verify before claiming completion. Size appropriately: small→haiku, standard→sonnet, large/security→opus.
 If verification fails, keep iterating.
 </verification>
+
+<failure_mode_guards>
+User input: when clarification, preference, or approval is required and AskUserQuestion is available, use AskUserQuestion instead of ending with a prose question; ask one focused question with 2-4 options. Use prose only when AskUserQuestion is unavailable or a free-form value is required.
+Session/worktree continuity: before editing after resume/compaction or inside a linked worktree, re-check `git status --short --branch`, current cwd, and relevant `.omc/state/` or `.omc/handoffs/` artifacts so work does not continue on the wrong branch or stale context.
+No fake completion: TODO-style placeholder notes, `test.skip`/`.only`, stub tests, and unimplemented branches are blockers, not evidence. Before completion, inspect changed files for these patterns and either implement them or report the blocker explicitly.
+</failure_mode_guards>
 
 <execution_protocols>
 Broad requests: explore first, then plan. 2+ independent tasks in parallel. `run_in_background` for builds/tests.
@@ -76,7 +61,7 @@ Kill switches: `DISABLE_OMC`, `OMC_SKIP_HOOKS` (comma-separated).
 </cancellation>
 
 <worktree_paths>
-State: `.omc/state/`, `.omc/state/sessions/{sessionId}/`, `.omc/notepad.md`, `.omc/project-memory.json`, `.omc/plans/`, `.omc/research/`, `.omc/logs/`
+State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STATE_DIR` is set, or the parent `.omc/` when a `.omc-workspace` marker anchors a multi-repo workspace. Runtime state includes `.omc/state/`, `.omc/state/sessions/{sessionId}/`, `.omc/notepad.md`, `.omc/project-memory.json`, `.omc/plans/`, `.omc/research/`, `.omc/logs/`, `.omc/artifacts/`, `.omc/handoffs/`, and `.omc/ultragoal/`. These are ignored operational artifacts by default; `.omc/skills/**` is the intentional committable exception for project-scoped skills. In linked git worktrees, local `.omc/` state is removed with the worktree unless centralized via `OMC_STATE_DIR`.
 </worktree_paths>
 
 ## Setup
@@ -115,25 +100,15 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 ## 스킬
 
-- 관련 스킬이 명백하면 파일이나 도구를 다루기 전에 현재 `SKILL.md`를 읽고 따른다.
-    - 컨텍스트에 실린 사본은 세션 시작 시점에 고정된다. 세션 중에 원본이 바뀌므로 쓰기 직전에 다시 읽는다.
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용한다.
 - 반복되는 5줄 초과 코드와 heredoc은 `scripts/`로 분리한다.
 
-### 새 스킬은 로컬에서 익힌다
-
-만들자마자 공유 저장소에 넣지 않는다. 몇 주 써보고 다듬은 뒤 옮긴다.
-
 | 단계 | 위치 | 언제 |
 | --- | --- | --- |
-| 익히는 중 | `~/.claude/skills/<name>/` | 처음 만들 때. git 추적 밖이다 |
 | 개인 공용 | `~/personal/fos-skills/` | 여러 저장소에서 쓸 만하다고 확인됐을 때 |
 | 팀 공용 | `~/projects/AiSdtSkill/skills/` | 사내 업무용이고 팀원도 쓸 만할 때 |
 
 옮길 때 심링크를 다시 걸고, 커밋은 옮기는 시점에 한 번만 남긴다.
-
-**커밋 전에 브랜치를 확인한다.** 공유 저장소는 다른 작업 브랜치에 체크아웃되어 있는 경우가 많다.
-확인하지 않으면 무관한 브랜치에 얹혀 그쪽 PR 에 섞인다.
 
 스킬을 실행하는 동안 아래를 만나면 그 자리에서 메모해 두고, 작업을 마친 뒤 개선 후보로 정리해 사용자에게 알린다.
 
@@ -143,7 +118,6 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 - 산문 대신 명령이나 스크립트로 대신할 수 있는 곳
 
 보고는 대상, 판정, 실측 근거를 한 줄씩 담은 표로 한다. 승인받은 항목만 수정하고, 감사 절차가 필요하면 `harness-cleanup` 을 따른다.
-근거는 실행 결과와 이력으로 남긴다. "이제는 안 틀릴 것 같다" 같은 추정은 개선 근거로 쓰지 않는다.
 CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채우지 말고 해당 저장소에 이슈로 등록한다.
 
 ## 브라우저
@@ -170,10 +144,8 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 ## 외부 게시와 업무 문체
 
 외부에 등록할 본문은 `content-preview` 스킬을 사용한다.
-채팅 안의 본문과 HTML 미리보기를 함께 보여준 뒤 그 턴을 끝낸다.
-등록 확인은 사용자가 미리보기를 읽은 다음 턴에 받는다.
 
-사용자 본인 명의의 업무 글은 업무 글 페르소나를 적용한다.
+사용자 업무 글은 업무 글 페르소나를 적용한다.
 관리 원본은 `~/.claude/references/work-writing-persona.md` 이며,
 작업 로그, 대외 회신, 업무 본문 세 모드의 문체를 정한다.
 
@@ -205,14 +177,13 @@ Dooray 업무를 생성하거나 수정할 때, 댓글을 달 때, 사내 회신
 
 ### 사내 지식을 언제 꺼내는가
 
-정해진 절차 없이 조사하고 논의하는 구간에서 가장 자주 놓친다. 워크플로우 스킬은 필요한 지식을 본문에 이미 담고 있으니 이 규칙은 그 밖을 덮는다.
-
-아래 넷 중 하나를 하려는 순간에 문장을 내보내기 전에 `nbrain` 을 먼저 돌린다. 내가 모른다고 느끼는지를 판단하지 않는다. 넷은 모두 내 출력에 드러나는 것이라 확인할 수 있다.
+정해진 절차 없이 조사하고 논의하는 구간에서 가장 자주 놓친다.
+아래 넷 중 하나를 하려는 순간에 문장을 내보내기 전에 `nbrain` 을 먼저 돌린다. 
+내가 모른다고 느끼는지를 판단하지 않는다. 넷은 모두 내 출력에 드러나는 것이라 확인할 수 있다.
 
 - 사내 관행, 절차, 환경 고유 값, 과거 결정을 사용자에게 물으려 할 때
 - `없다`, `처음이다`, `확인할 수 없다`, `찾지 못했다` 라고 답하려 할 때
 - `아마`, `~인 것 같다` 처럼 추측 표현으로 사내 사실을 말하려 할 때
 - 사용자가 사내 사실을 정정했을 때
 
-헛돌아도 검색 한 번이라 손해가 몇 초다. 놓치면 틀린 결론을 내고 사용자가 되돌려야 한다. 비용이 비대칭이라 애매하면 돈다.
 검색해도 없으면 없다고 말해도 된다. 검색하지 않고 없다고 말하는 것만 금지한다.
