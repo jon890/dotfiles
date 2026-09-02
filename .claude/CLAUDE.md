@@ -1,4 +1,5 @@
 <!-- OMC:START -->
+
 <!-- OMC:VERSION:4.15.10 -->
 
 # oh-my-claudecode - Intelligent Multi-Agent Orchestration
@@ -7,60 +8,79 @@ You are running with oh-my-claudecode (OMC), a multi-agent orchestration layer f
 Coordinate specialized agents, tools, and skills so work is completed accurately and efficiently.
 
 <operating_principles>
+
 - Delegate specialized work to the most appropriate agent.
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
 - Consult official docs before implementing with SDKs/frameworks/APIs.
-</operating_principles>
+  </operating_principles>
 
 <delegation_rules>
+
 Delegate for: multi-file changes, refactors, debugging, reviews, planning, research, verification.
 Work directly for: trivial ops, small clarifications, single commands.
 Route code to `executor` (use `model=opus` for complex work). Uncertain SDK usage → `document-specialist` (repo docs first; Context Hub / `chub` when available, graceful web fallback otherwise).
+
 </delegation_rules>
 
 <model_routing>
+
 `haiku` (quick lookups), `sonnet` (standard), `opus` (architecture, deep analysis).
 Direct writes OK for: `~/.claude/**`, `.omc/**`, `.claude/**`, `CLAUDE.md`, `AGENTS.md`.
+
 </model_routing>
 
 <skills>
+
 Invoke via `/oh-my-claudecode:<name>`. Trigger patterns auto-detect keywords.
 Tier-0 workflows include `autopilot`, `ultrawork`, `ralph`, and `ralplan`.
 Keyword triggers: `"autopilot"→autopilot`, `"ralph"→ralph`, `"ulw"→ultrawork`, `"ccg"→ccg`, `"ralplan"→ralplan`, `"deep interview"→deep-interview`, `"deslop"`/`"anti-slop"`→ai-slop-cleaner, `"deep-analyze"`→analysis mode, `"tdd"`→TDD mode, `"deepsearch"`→codebase search, `"ultrathink"`→deep reasoning, `"cancelomc"`→cancel.
 Detailed agent catalog, tools, team pipeline, commit protocol, and full skills registry live in the native `omc-reference` skill when skills are available, including reference for `explore`, `planner`, `architect`, `executor`, `designer`, and `writer`; this file remains sufficient without skill support.
+
 </skills>
 
 <verification>
+
 Verify before claiming completion. Size appropriately: small→haiku, standard→sonnet, large/security→opus.
 If verification fails, keep iterating.
+
 </verification>
 
 <failure_mode_guards>
+
 User input: when clarification, preference, or approval is required and AskUserQuestion is available, use AskUserQuestion instead of ending with a prose question; ask one focused question with 2-4 options. Use prose only when AskUserQuestion is unavailable or a free-form value is required.
 Session/worktree continuity: before editing after resume/compaction or inside a linked worktree, re-check `git status --short --branch`, current cwd, and relevant `.omc/state/` or `.omc/handoffs/` artifacts so work does not continue on the wrong branch or stale context.
 No fake completion: TODO-style placeholder notes, `test.skip`/`.only`, stub tests, and unimplemented branches are blockers, not evidence. Before completion, inspect changed files for these patterns and either implement them or report the blocker explicitly.
+
 </failure_mode_guards>
 
 <execution_protocols>
+
 Broad requests: explore first, then plan. 2+ independent tasks in parallel. `run_in_background` for builds/tests.
 Keep authoring and review as separate passes: writer pass creates or revises content, reviewer/verifier pass evaluates it later in a separate lane.
 Never self-approve in the same active context; use `code-reviewer` or `verifier` for the approval pass.
 Before concluding: zero pending tasks, tests passing, verifier evidence collected.
+
 </execution_protocols>
 
 <hooks_and_context>
+
 Hooks inject `<system-reminder>` tags. Key patterns: `hook success: Success` (proceed), `[MAGIC KEYWORD: ...]` (invoke skill), `The boulder never stops` (ralph/ultrawork active).
 Persistence: `<remember>` (7 days), `<remember priority>` (permanent).
 Kill switches: `DISABLE_OMC`, `OMC_SKIP_HOOKS` (comma-separated).
+
 </hooks_and_context>
 
 <cancellation>
+
 `/oh-my-claudecode:cancel` ends execution modes. Cancel when done+verified or blocked. Don't cancel if work incomplete.
+
 </cancellation>
 
 <worktree_paths>
+
 State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STATE_DIR` is set, or the parent `.omc/` when a `.omc-workspace` marker anchors a multi-repo workspace. Runtime state includes `.omc/state/`, `.omc/state/sessions/{sessionId}/`, `.omc/notepad.md`, `.omc/project-memory.json`, `.omc/plans/`, `.omc/research/`, `.omc/logs/`, `.omc/artifacts/`, `.omc/handoffs/`, and `.omc/ultragoal/`. These are ignored operational artifacts by default; `.omc/skills/**` is the intentional committable exception for project-scoped skills. In linked git worktrees, local `.omc/` state is removed with the worktree unless centralized via `OMC_STATE_DIR`.
+
 </worktree_paths>
 
 ## Setup
@@ -90,7 +110,6 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 - 다른 저장소를 고쳐야 하면 그 저장소의 워크트리에 세션을 따로 띄워 넘긴다.
 - **넘기는 방법은 `orchestration` 을 쓴다.** 이쪽 작업이 그 결과에 걸려 있으므로 결과를 받아야 한다.
-    - 결과가 필요 없는 완전한 이관만 `orca-cli` 로 넘긴다.
 - 넘길 때 결정하지 못한 것을 함께 적는다. 받는 세션이 그것부터 사용자에게 묻는다.
 
 한 세션이 여러 저장소에 쓰기를 하면 브랜치가 저장소마다 갈리고, 어디가 어느 브랜치에
@@ -117,9 +136,9 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 #### worker 를 띄울 때의 함정
 
 - **새 워크트리에서 claude 를 처음 띄우면 폴더 신뢰 확인이 떠서 `worker-start` 가 `agent_prompt_stalled` 로 실패한다.**
-  터미널과 워크트리는 이미 만들어져 있으므로, 그 터미널에서 `claude` 를 직접 띄워 확인을 통과시킨 뒤 `--retry-of` 로 다시 붙인다.
-  이미 쓰던 워크트리를 재사용하면 이 단계가 없다.
-- **`--retry-of` 로 재시도할 때 `--worktree` 를 함께 명시한다.** 빠뜨리면 코디네이터의 워크트리를 가정해 `terminal_worktree_mismatch` 로 거절된다.
+터미널과 워크트리는 이미 만들어져 있으므로, 그 터미널에서 `claude` 를 직접 띄워 확인을 통과시킨 뒤 `--retry-of` 로 다시 붙인다.
+이미 쓰던 워크트리를 재사용하면 이 단계가 없다.
+- `**--retry-of` 로 재시도할 때 `--worktree` 를 함께 명시한다.** 빠뜨리면 코디네이터의 워크트리를 가정해 `terminal_worktree_mismatch` 로 거절된다.
 - 긴 지시는 앞부분이 잘려 도착할 수 있다. worker 가 되물으면 잘린 부분만 짧게 다시 보낸다.
 
 ## 스킬
@@ -127,12 +146,12 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용한다.
 - 반복되는 5줄 초과 코드와 heredoc은 `scripts/`로 분리한다.
 
-| 단계 | 위치 | 언제 |
-| --- | --- | --- |
-| 개인 공용 | `~/personal/fos-skills/` | 여러 저장소에서 쓸 만하다고 확인됐을 때 |
-| 팀 공용 | `~/projects/AiSdtSkill/skills/` | 사내 업무용이고 팀원도 쓸 만할 때 |
 
-옮길 때 심링크를 다시 걸고, 커밋은 옮기는 시점에 한 번만 남긴다.
+스킬은 저장소 로컬, 개인 공용 `~/personal/fos-skills/`, 팀 공용 `~/projects/AiSdtSkill/skills/` 셋으로 나뉜다.
+
+**공용 스킬을 고치기 전에 `~/.claude/references/skill-sync.md` 를 읽는다.**
+어느 층을 고쳐야 하는지, 어떤 방향으로 전파되는지, 층을 올릴 때 무엇을 하는지가 거기 있다.
+개인 공용이 원본이고 팀 공용은 사본이라, 사본을 고치면 다음 내보내기에 덮인다.
 
 스킬을 실행하는 동안 아래를 만나면 그 자리에서 메모해 두고, 작업을 마친 뒤 개선 후보로 정리해 사용자에게 알린다.
 
@@ -148,12 +167,11 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 
 브라우저 작업은 `~/.claude/scripts/browser-driver`를 사용한다.
 브라우저 도구를 직접 부르면 실패해도 종료 코드가 0이라 오류가 묻힌다. 드라이버가 이것을 1로 바꾼다.
-백엔드 선택과 백엔드별 함정은 그 드라이버의 README가 소유한다.
 
-- 숨은 요소나 겹침 화면은 드라이버의 `js` 명령으로 조작한다.
-- JS 인자는 작은따옴표로 감싼다. 큰따옴표로 감싸면 JS 안의 `$(`를 셸이 명령 치환으로 먹는다.
-- 고정 대기 대신 드라이버의 `waitjs`로 조건을 기다린다. `sleep`도 동작하지만 화면 반응 시간에 따라 불안정하다.
-- 사내 시스템은 세션이 끊기면 로그인 화면으로 조용히 이동한다. 조회 결과가 비면 `url` 명령으로 현재 주소를 먼저 본다.
+**첫 명령을 쓰기 전에 `browser-driver help` 를 읽는다.** 명령 목록과 함정을 그 출력이 소유한다.
+백엔드 선택과 백엔드별 함정은 그 드라이버의 README 가 소유한다.
+
+- 숨은 요소나 겹침 화면은 드라이버의 `js` 명령으로 조작한다. 이것은 `help` 에 없다.
 
 ## 한국어 산출물 점검
 
@@ -184,11 +202,11 @@ Dooray 업무를 생성하거나 수정할 때, 댓글을 달 때, 사내 회신
 - 처음 보는 결정은 질문 전에 배경과 권장 이유를 설명한다.
 - 문맥과 안전한 가정으로 진행할 수 있으면 질문하지 않는다.
 - 중첩 인자에 한국어를 직접 쓰면 이스케이프 실수로 글자가 바뀐다.
-  실측으로 어투가 어토로, 응급이 어때로, 청중이 섬중으로, 회귀가 회기로 바뀌었다.
-  넷 다 유효한 한글이라 길이 검사로는 잡히지 않는다.
+실측으로 어투가 어토로, 응급이 어때로, 청중이 섬중으로, 회귀가 회기로 바뀌었다.
+넷 다 유효한 한글이라 길이 검사로는 잡히지 않는다.
 - 한국어 도구 입력은 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
 - 선택지 상세는 응답 본문 표에 두어 도구로 넘기는 한국어의 양을 줄이고,
-  `AskUserQuestion` 에는 짧은 이름만 넣는다.
+`AskUserQuestion` 에는 짧은 이름만 넣는다.
 - 호출 전에 인자를 응답 본문 표에 적은 이름과 글자 단위로 대조한다. 이 대조가 유일한 검출 수단이다.
 
 ## 개인 지식과 사내 지식
