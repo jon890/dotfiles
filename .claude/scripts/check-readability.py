@@ -33,7 +33,10 @@
 
 import json
 import re
+import os
 import sys
+import tempfile
+from pathlib import Path
 
 # 여는 괄호 안에서 다시 괄호가 열리고 닫히는 형태만 잡는다.
 NESTED_PAREN = re.compile(r"\([^()]*\([^()]*\)")
@@ -182,6 +185,20 @@ def main():
         return run_hook()
 
     found = []
+    # 파일이 아닌 문자열도 검사한다. 제목과 커밋 메시지가 이 경로로 들어온다.
+    if sys.argv[1] == "--text":
+        text = " ".join(sys.argv[2:])
+        tmp = Path(tempfile.gettempdir()) / f"readability-text-{os.getpid()}.md"
+        tmp.write_text(text + "\n", encoding="utf-8")
+        try:
+            found = check(tmp)
+        finally:
+            tmp.unlink(missing_ok=True)
+        for item in found:
+            code, msg = item[-2], item[-1]
+            print(f"(문자열)  [{code}] {msg}")
+        sys.exit(1 if found else 0)
+
     for path in sys.argv[1:]:
         found.extend(check(path))
 
