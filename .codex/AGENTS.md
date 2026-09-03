@@ -24,13 +24,34 @@
 
 ## 작업과 검토
 
+- 사용자가 결과와 연속 작업을 이미 승인했다면, 중간 상태 조회와 재시도, 정해진 자동화 트리거마다 다시 묻지 않는다.
 - 관련 스킬이 명백하면 파일이나 도구를 다루기 전에 해당 `SKILL.md`를 읽고 따른다.
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용하고 실제 관리 원본을 확인한다.
 - 반복해서 실행하는 5줄 초과 코드와 heredoc은 스킬의 `scripts/`로 분리한다.
+- 일회성 분석 스크립트, 다운로드 원본과 중간 산출물은 저장소나 agent data 디렉터리에 두지 않는다.
+  `mktemp -d`로 `/tmp` 아래에 실행별 디렉터리를 만들고, 정상 종료와 오류 종료 모두에서 제거한다.
+  사용자가 요청한 최종 산출물만 해당 저장소가 허용한 경로에 남긴다.
 - 스킬을 수정한 뒤 `quick_validate.py`로 검증한다.
 - 요청 없이 기존 스킬을 삭제하지 않는다.
 - 구현 결과와 중요한 문서는 가능한 경우 별도 `code-reviewer` 또는 `verifier`가 검토한다.
 - 독립 검토가 불가능하면 메인 세션이 직접 검증했다고 밝히고 실측 근거를 남긴다.
+
+### 한 세션은 한 저장소만 수정한다
+
+읽기는 여러 저장소에서 할 수 있지만 한 에이전트 세션의 쓰기는 한 저장소로 제한한다.
+
+- 다른 저장소를 수정해야 하면 해당 저장소의 worktree에 새 세션을 띄우고 `orchestration`으로 작업을 배분한다.
+- 코디네이터는 Orca Run, Task와 Dispatch를 만들고 `worker_done` 또는 `escalation`까지 결과를 추적한다.
+- 여러 저장소가 얽힌 작업은 저장소별 Task로 나누고 의존 관계를 명시한다.
+- 작업자가 결정할 수 없는 사항과 선행 결과는 Task 명세에 함께 전달한다.
+- 새 worktree는 `orca worktree create` 또는 `orca orchestration worker-start`로 만든다.
+- 각 프로젝트의 Orca `worktreeBasePath`를 `./worktrees`로 설정하고, 생성 결과 경로가 `<프로젝트>/worktrees/` 아래인지 확인한 뒤 작업을 배분한다.
+- 사용자가 명시하지 않았다면 프로젝트 밖의 기존 worktree나 `git worktree add`로 만든 경로를 재사용하지 않는다.
+- 완료된 Dispatch는 즉시 `worker-release`로 정리한다. PR이 열린 worktree는 리뷰 반영을 위해 머지될 때까지 유지한다.
+- 정리 전에는 미커밋 변경과 stash를 확인하고, 다른 사용자의 작업이나 열린 PR worktree를 삭제하지 않는다.
+
+Orca orchestration 명령은 설치된 `orchestration` 스킬과 `orca skills get orchestration`에서 읽은 현재 버전 계약을 따른다.
+일반 subagent 도구를 Orca Dispatch로 가장하지 않는다.
 
 `build-with-teams`를 Codex에서 실행할 때는 `critic` 평가 전과 `executor` 생성 직전에
 `~/.codex/skills/build-with-teams/references/executor-routing.md`를 적용하고
