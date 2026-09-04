@@ -24,13 +24,34 @@
 
 ## 작업과 검토
 
+- 사용자가 결과와 연속 작업을 이미 승인했다면, 중간 상태 조회와 재시도, 정해진 자동화 트리거마다 다시 묻지 않는다.
 - 관련 스킬이 명백하면 파일이나 도구를 다루기 전에 해당 `SKILL.md`를 읽고 따른다.
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용하고 실제 관리 원본을 확인한다.
 - 반복해서 실행하는 5줄 초과 코드와 heredoc은 스킬의 `scripts/`로 분리한다.
+- 일회성 분석 스크립트, 다운로드 원본과 중간 산출물은 저장소나 agent data 디렉터리에 두지 않는다.
+  `mktemp -d`로 `/tmp` 아래에 실행별 디렉터리를 만들고, 정상 종료와 오류 종료 모두에서 제거한다.
+  사용자가 요청한 최종 산출물만 해당 저장소가 허용한 경로에 남긴다.
 - 스킬을 수정한 뒤 `quick_validate.py`로 검증한다.
 - 요청 없이 기존 스킬을 삭제하지 않는다.
 - 구현 결과와 중요한 문서는 가능한 경우 별도 `code-reviewer` 또는 `verifier`가 검토한다.
 - 독립 검토가 불가능하면 메인 세션이 직접 검증했다고 밝히고 실측 근거를 남긴다.
+
+### 한 세션은 한 저장소만 수정한다
+
+읽기는 여러 저장소에서 할 수 있지만 한 에이전트 세션의 쓰기는 한 저장소로 제한한다.
+
+- 다른 저장소를 수정해야 하면 해당 저장소의 worktree에 새 세션을 띄우고 `orchestration`으로 작업을 배분한다.
+- 코디네이터는 Orca Run, Task와 Dispatch를 만들고 `worker_done` 또는 `escalation`까지 결과를 추적한다.
+- 여러 저장소가 얽힌 작업은 저장소별 Task로 나누고 의존 관계를 명시한다.
+- 작업자가 결정할 수 없는 사항과 선행 결과는 Task 명세에 함께 전달한다.
+- 새 worktree는 `orca worktree create` 또는 `orca orchestration worker-start`로 만든다.
+- 각 프로젝트의 Orca `worktreeBasePath`를 `./worktrees`로 설정하고, 생성 결과 경로가 `<프로젝트>/worktrees/` 아래인지 확인한 뒤 작업을 배분한다.
+- 사용자가 명시하지 않았다면 프로젝트 밖의 기존 worktree나 `git worktree add`로 만든 경로를 재사용하지 않는다.
+- 완료된 Dispatch는 즉시 `worker-release`로 정리한다. PR이 열린 worktree는 리뷰 반영을 위해 머지될 때까지 유지한다.
+- 정리 전에는 미커밋 변경과 stash를 확인하고, 다른 사용자의 작업이나 열린 PR worktree를 삭제하지 않는다.
+
+Orca orchestration 명령은 설치된 `orchestration` 스킬과 `orca skills get orchestration`에서 읽은 현재 버전 계약을 따른다.
+일반 subagent 도구를 Orca Dispatch로 가장하지 않는다.
 
 `build-with-teams`를 Codex에서 실행할 때는 `critic` 평가 전과 `executor` 생성 직전에
 `~/.codex/skills/build-with-teams/references/executor-routing.md`를 적용하고
@@ -46,14 +67,19 @@ GitHub PR의 제목과 본문은 한국어를 기본으로 작성한다.
 
 - 본문과 HTML 미리보기를 함께 보여준 뒤 해당 턴을 끝낸다.
 - 등록 확인은 사용자가 미리보기를 읽고 응답한 다음 턴에 받는다.
+- 사람이 읽을 본문이 아닌 정해진 명령 토큰(`/review` 등)은 미리보기와 등록 재확인을 생략한다.
 - 로컬 파일 작성과 코드 커밋은 이 절차의 대상이 아니다.
 
 ## 브라우저 사용
 
-- 기본 작업 환경은 Codex CLI와 Claude Code이므로 앱 전용 내장 브라우저 연결은 대부분 사용할 수 없다. 전용 API나 명령줄 도구를 우선하고, 브라우저가 필요하면 `Orca browser` 또는 `agent-browser`를 사용한다.
-- Codex CLI에서 기존 Chrome 로그인 상태가 필요하면 `agent-browser --auto-connect`를 우선 검토한다.
+- 브라우저 작업은 `~/.claude/scripts/browser-driver`를 사용한다. 브라우저 백엔드를 직접 호출하면 실패해도 종료 코드가 0으로 남을 수 있으므로 드라이버의 종료 코드로 성공 여부를 판정한다.
+- 백엔드 선택과 백엔드별 함정은 `browser-driver`의 `README.md`를 단일 소스로 삼는다.
+- 사용자가 브라우저를 지정하면 드라이버에서 해당 백엔드를 사용한다.
+- 사람이 볼 `Orca browser` 화면은 `ORCA_WORKTREE`로 현재 작업 worktree를 고정하고, 드라이버의 `worktree` 명령으로 탭 위치를 확인한다.
+- 숨은 요소나 겹침 화면은 드라이버의 `js` 명령으로 조작하고, 고정 대기 대신 `waitjs`로 조건을 기다린다.
+- `js` 인자는 작은따옴표로 감싼다. 큰따옴표를 쓰면 JavaScript 안의 `$(`를 셸이 명령 치환으로 처리할 수 있다.
+- 사내 시스템 조회 결과가 비면 드라이버의 `url` 명령으로 로그인 화면 이동 여부를 먼저 확인한다.
 - 브라우저 도구로 다룰 수 없는 데스크톱 UI와 운영체제 조작에는 `computer-use`를 사용한다.
-- 사용자가 다른 브라우저를 지정하면 해당 선택을 따른다.
 - 로컬 HTML은 가능한 경우 실제 렌더링과 링크 동작을 확인한다.
 
 ## 문서와 한국어 표현
@@ -63,6 +89,11 @@ GitHub PR의 제목과 본문은 한국어를 기본으로 작성한다.
 - `~/.claude/rules/korean-style.md`: 쉬운 한국어와 문장 구성
 - `~/.claude/rules/writing-structure.md`: 분량에 맞는 글 구조
 - `~/.claude/rules/markdown-readability.md`: 마크다운 렌더링과 편집기 주의점
+
+이력서와 경력기술서에서는 `운영 경계`, `품질 기반`처럼 실제 작업을 가리는 추상 표현을 쓰지 않는다.
+제품, 문제, 수행한 작업과 확인한 결과를 직접 쓴다.
+NED와 F1 같은 평가지표 이름을 성과처럼 나열하지 않는다.
+무엇을 비교했고 어떤 오류를 찾았는지 먼저 쓰고, 지표 이름은 측정 방법을 설명할 때만 사용한다.
 
 문서를 작성한 뒤 다음 검사기를 실행한다.
 두 검사기는 통과하면 0, 위반을 찾으면 1, 실행하지 못하면 2로 끝난다.
