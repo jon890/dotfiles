@@ -53,11 +53,6 @@
 Orca orchestration 명령은 설치된 `orchestration` 스킬과 `orca skills get orchestration`에서 읽은 현재 버전 계약을 따른다.
 일반 subagent 도구를 Orca Dispatch로 가장하지 않는다.
 
-`build-with-teams`를 Codex에서 실행할 때는 `critic` 평가 전과 `executor` 생성 직전에
-`~/.codex/skills/build-with-teams/references/executor-routing.md`를 적용하고
-`~/.codex/skills/build-with-teams/scripts/executor_routing_gate.py`를 통과시킨다.
-판정이 다르면 더 엄격한 실행 형태를 사용하고, `EXECUTOR_ESCALATE`가 나오면 실행 형태를 올린다.
-
 ## 외부에 게시하는 글
 
 Dooray 댓글과 업무, GitHub 이슈와 PR, 블로그 글, 메일, Slack 메시지처럼 외부에 등록할 본문은 `content-preview` 스킬로 등록 전에 미리 보여준다.
