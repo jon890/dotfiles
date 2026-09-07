@@ -35,9 +35,9 @@
 
 | 강제 주체 | 잡는 것 | 발동 |
 | --- | --- | --- |
-| `~/.claude/scripts/korean-style-check.sh` | 외래어 매핑 표의 금지어, 인라인 `+` 연결 | `.md` 편집 직후 |
-| `~/.claude/scripts/check-readability.py` | 괄호 2겹 중첩(`NEST`), `§`(`SECT`), 범위 물결표(`TILDE`), 엠대시(`DASH`) | `.md` 편집 직후 |
-| fos-study 의 `blog_score.py` | fos-blog 렌더러 고유 함정. bold 안 따옴표, 제목 숫자 접두사 등 | fos-study 의 `.md` 편집 직후 |
+| `~/.claude/scripts/korean-style-check.sh` | 외래어 매핑 표의 금지어, 인라인 `+` 연결 | 편집 도구가 `.md` 를 바꾼 직후 |
+| `~/.claude/scripts/check-readability.py` | 괄호 2겹 중첩(`NEST`), `§`(`SECT`), 범위 물결표(`TILDE`), 엠대시(`DASH`) | 편집 도구가 `.md` 를 바꾼 직후 |
+| fos-study 의 `blog_score.py` | fos-blog 렌더러 고유 함정. bold 안 따옴표, 제목 숫자 접두사 등 | 편집 도구가 fos-study 의 `.md` 를 바꾼 직후 |
 | 사람 | 한 문장 한 줄, `=` 와 `→` 압축, 문장 성분 생략, 종결어미 | 작성 직후 |
 | 사람 | 분량 구간 판단, 목록 구조, 내용 점검 | 작성 직후 |
 | 사람 | 위지윅 붙여넣기 | 게시 직전 |
@@ -50,15 +50,24 @@
 python3 ~/.claude/scripts/check-readability.py <파일.md> [<파일.md>...]
 ```
 
-## 파일이 아닌 것은 검사되지 않는다
+## 훅이 잡지 못하는 것
 
-두 검사기는 파일 경로를 받는다. 아래는 파일이 아니라 명령 인자로 나가므로 그대로 지나간다.
+훅은 `Edit`, `Write`, `MultiEdit` 가 파일을 바꿨을 때만 돈다.
+**파일이어도 만든 방법에 따라 빠진다.**
 
-| 대상 | 어디로 나가나 |
+| 대상 | 왜 빠지나 |
 | --- | --- |
-| 업무와 위키 제목 | `--title` |
-| PR 과 이슈 제목 | `--title` |
-| 커밋 메시지 | `-m`, `-F -` |
+| Bash 의 heredoc, `sed`, python 으로 만든 `.md` | 그 도구들이 훅의 발동 조건에 없다 |
+| 업무와 위키 제목, PR 과 이슈 제목 | 파일이 아니라 `--title` 인자로 나간다 |
+| 커밋 메시지 | 파일이 아니라 `-m` 이나 `-F -` 로 나간다 |
+
+**bypass permissions 모드에서는 Bash 로 파일을 만드는 것이 기본 경로다.**
+그 모드에서 만든 `.md` 는 훅을 한 번도 거치지 않는다.
+실측으로 엠대시가 둘 든 파일을 heredoc 으로 만들었을 때 훅은 아무 출력도 내지 않았고,
+같은 파일에 검사기를 손으로 돌리자 `DASH` 2건이 나왔다.
+
+만든 방법과 무관하게 파일 경로로 직접 돌린다.
+외부로 나가는 본문은 `content-preview` 의 자가 점검 단계가 이 실행을 소유한다.
 
 제목은 문자열 모드로 검사한다.
 
