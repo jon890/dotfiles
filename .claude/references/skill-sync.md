@@ -23,8 +23,9 @@ cd ~/.claude/skills && for n in *; do printf '%-24s %s\n' "$n" "$(readlink "$n" 
 **`fos-skills` 가 원본이고 `AiSdtSkill` 의 것은 사본이다.**
 팀원이 저장소를 둘 받지 않아도 되게 사본을 두고, 어긋남은 스크립트가 잡는다.
 
-대상은 다섯이다. `content-preview`, `planning`, `build-with-teams`, `docs-check`, `review-fix`.
-목록의 단일 소스는 `fos-skills/scripts/export-to-team.sh` 의 `SHARED_SKILLS` 다.
+내보내는 스킬은 `content-preview`, `planning`, `build-with-teams`, `docs-check`, `review-fix` 다.
+스킬이 아닌 공용 도구도 함께 내보낸다. `fos-skills/tools/<이름>` 이 팀 저장소의 같은 경로가 된다.
+두 목록의 단일 소스는 `fos-skills/scripts/export-to-team.sh` 의 `SHARED_SKILLS` 와 `SHARED_TOOLS` 다.
 
 ```bash
 cd ~/personal/fos-skills
@@ -44,8 +45,8 @@ cd ~/personal/fos-skills
 
 ## 고치기 전에 확인하는 것
 
-1. 그 스킬이 다섯 안에 있는지 본다. 있으면 **원본을 고친다.**
-2. 심링크가 어디를 가리키는지 본다. 사본을 가리키면 내보내기 전까지 내 환경에 반영되지 않는다.
+1. 그 스킬이 내보내는 목록 안에 있는지 본다. 있으면 **원본을 고친다.**
+2. 심링크가 어디를 가리키는지 본다. **원본을 가리켜야 고친 내용이 바로 실행된다.**
 3. 버전을 올린다. 판단 기준은 `fos-skills/README.md` 의 「버전과 변경 이력」 이다.
 4. 내보내고, 두 저장소에서 각각 커밋한다.
 
