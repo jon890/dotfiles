@@ -182,10 +182,18 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 ## 한국어 산출물 점검
 
 한국어로 내보내는 산출물은 내보내기 직전에 한 번 점검한다.
-판정 기준은 `~/.claude/rules/korean-style.md` 의 「문장 구성」이다.
+**판정 기준과 검사기는 `korean-check` 스킬이 소유한다.**
 
 파일, PR 본문, 커밋 메시지, 게시글, 아티팩트, 채팅 답변이 모두 대상이다.
 편집 훅은 `.md` 파일의 금지어와 괄호 중첩만 잡는다. 나머지는 이 점검이 맡는다.
+
+```bash
+~/.claude/skills/korean-check/scripts/check.sh <파일.md> [<파일.md>...]
+~/.claude/skills/korean-check/scripts/check.sh --text "<제목이나 커밋 메시지>"
+```
+
+검사기가 잡지 못하는 축은 그 스킬의 `references/review-axes.md` 가 소유한다.
+긴 문서와 정형 양식은 쓰지 않은 쪽이 읽는다.
 
 걸리면 이유를 덧붙이지 말고 문장을 풀어 쓴다.
 
