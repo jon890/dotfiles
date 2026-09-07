@@ -145,6 +145,12 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용한다.
 - 반복되는 5줄 초과 코드와 heredoc은 `scripts/`로 분리한다.
+- **행동을 시키는 자리는 긍정형으로 쓴다.** `A 하지 말고 B 한다` 는 `B 한다` 로 줄인다.
+- **하네스 전용 도구 이름을 쓰지 않는다.** `AskUserQuestion` 대신 「구조화 질문 도구가 있으면 쓴다」 처럼 적는다.
+Codex 를 비롯한 다른 에이전트에서도 돌아야 한다.
+- **description 에는 목표 한 문장과 트리거만 둔다.** 지침은 본문이 소유한다.
+
+스킬 문서의 판정 기준은 `harness-cleanup` 의 `references/judgment.md` 가 소유한다.
 
 
 스킬은 저장소 로컬, 개인 공용 `~/personal/fos-skills/`, 팀 공용 `~/projects/AiSdtSkill/skills/` 셋으로 나뉜다.
