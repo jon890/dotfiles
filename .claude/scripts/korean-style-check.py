@@ -1,0 +1,1 @@
+../../personal/fos-skills/korean-check/scripts/korean-style-check.py
