@@ -1,1 +1,1 @@
-/Users/nhn/personal/fos-skills/korean-check/scripts/korean-style-check.sh
+../../personal/fos-skills/korean-check/scripts/korean-style-check.sh

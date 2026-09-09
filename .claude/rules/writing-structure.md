@@ -1,1 +1,1 @@
-/Users/nhn/personal/fos-skills/korean-check/references/writing-structure.md
+../../personal/fos-skills/korean-check/references/writing-structure.md

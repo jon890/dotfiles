@@ -1,1 +1,1 @@
-/Users/nhn/personal/fos-skills/korean-check/references/markdown-readability.md
+../../personal/fos-skills/korean-check/references/markdown-readability.md

@@ -1,1 +1,1 @@
-/Users/nhn/personal/fos-skills/korean-check/scripts/check-readability.py
+../../personal/fos-skills/korean-check/scripts/check-readability.py

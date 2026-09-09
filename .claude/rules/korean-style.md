@@ -1,1 +1,1 @@
-/Users/nhn/personal/fos-skills/korean-check/references/korean-style.md
+../../personal/fos-skills/korean-check/references/korean-style.md
