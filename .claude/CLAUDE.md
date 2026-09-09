@@ -13,7 +13,7 @@ Coordinate specialized agents, tools, and skills so work is completed accurately
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
 - Consult official docs before implementing with SDKs/frameworks/APIs.
-  </operating_principles>
+    </operating_principles>
 
 <delegation_rules>
 
@@ -83,10 +83,6 @@ State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STAT
 
 </worktree_paths>
 
-## Setup
-
-Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
-
 <!-- OMC:END -->
 
 ## 사용자 배경
@@ -99,8 +95,6 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 ## 작업 방식
 
-- 명확하고 안전한 로컬 작업은 묻지 않고 완료와 검증까지 진행한다.
-- 외부 게시, 파괴적 작업, 권한 부족, 실질적인 범위 변경 앞에서만 확인한다.
 - 구현과 중요한 문서의 검토는 가능한 경우 별도 `code-reviewer` 또는 `verifier`에 맡긴다.
 - 커밋은 관심사별로 분리한다.
 
@@ -125,7 +119,7 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 
 - `worker-release` 로 settled 된 dispatch 를 정리한다
 - 작업이 끝난 워크트리를 제거한다
-- base 에 머지된 로컬 브랜치를 지운다. `develop` 이 있으면 그것을, 없으면 `master` 를 기준으로 본다
+- base 에 머지된 로컬 브랜치를 지운다. 
 - 남은 worker 터미널을 닫는다. 코디네이터 자신의 터미널은 제외한다
 
 **PR 이 열려 있는 워크트리는 남긴다.** 리뷰 반영이 오면 그 자리가 필요하다. 머지된 뒤에 지운다.
@@ -146,12 +140,9 @@ Say "setup omc" or run `/oh-my-claudecode:omc-setup`.
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용한다.
 - 반복되는 5줄 초과 코드와 heredoc은 `scripts/`로 분리한다.
 - **행동을 시키는 자리는 긍정형으로 쓴다.** `A 하지 말고 B 한다` 는 `B 한다` 로 줄인다.
-- **하네스 전용 도구 이름을 쓰지 않는다.** `AskUserQuestion` 대신 「구조화 질문 도구가 있으면 쓴다」 처럼 적는다.
-Codex 를 비롯한 다른 에이전트에서도 돌아야 한다.
 - **description 에는 목표 한 문장과 트리거만 둔다.** 지침은 본문이 소유한다.
 
 스킬 문서의 판정 기준은 `harness-cleanup` 의 `references/judgment.md` 가 소유한다.
-
 
 스킬은 저장소 로컬, 개인 공용 `~/personal/fos-skills/`, 팀 공용 `~/projects/AiSdtSkill/skills/` 셋으로 나뉜다.
 
@@ -183,11 +174,11 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 
 이 머신의 zsh 환경에서 실측한 것이다.
 
-- **`noclobber` 가 켜져 있다.** 기존 파일에 `>` 로 덮어쓰면 종료 코드 1 과
+- `**noclobber` 가 켜져 있다.** 기존 파일에 `>` 로 덮어쓰면 종료 코드 1 과
 `file exists` 한 줄만 나오고 파일은 옛 내용을 유지한다.
 파일이 바뀐 줄로 알고 다음 단계로 가면 잘못된 값을 측정한다.
 덮어쓸 때 `>|` 를 쓰거나 `rm -f` 를 먼저 한다. `>>` 는 그대로 쓴다.
-- **`timeout` 과 `gtimeout` 이 없다.** 시간으로 끊어야 하면 그 도구 자신의
+- `**timeout` 과 `gtimeout` 이 없다.** 시간으로 끊어야 하면 그 도구 자신의
 타임아웃 옵션을 쓰고, 없으면 백그라운드로 돌린다.
 
 ## 한국어 산출물 점검
@@ -226,13 +217,6 @@ Dooray 업무를 생성하거나 수정할 때, 댓글을 달 때, 사내 회신
 - 선택형 질문에는 `AskUserQuestion`을 사용하고 권장안을 첫 번째에 둔다.
 - 처음 보는 결정은 질문 전에 배경과 권장 이유를 설명한다.
 - 문맥과 안전한 가정으로 진행할 수 있으면 질문하지 않는다.
-- 중첩 인자에 한국어를 직접 쓰면 이스케이프 실수로 글자가 바뀐다.
-실측으로 어투가 어토로, 응급이 어때로, 청중이 섬중으로, 회귀가 회기로 바뀌었다.
-넷 다 유효한 한글이라 길이 검사로는 잡히지 않는다.
-- 한국어 도구 입력은 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
-- 선택지 상세는 응답 본문 표에 두어 도구로 넘기는 한국어의 양을 줄이고,
-`AskUserQuestion` 에는 짧은 이름만 넣는다.
-- 호출 전에 인자를 응답 본문 표에 적은 이름과 글자 단위로 대조한다. 이 대조가 유일한 검출 수단이다.
 
 ## 개인 지식과 사내 지식
 
