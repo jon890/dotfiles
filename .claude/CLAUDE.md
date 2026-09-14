@@ -121,6 +121,12 @@ State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STAT
 한 번에 여러 역할을 띄웠으면 종료도 한 번에 한다.
 다른 세션에 넘긴 작업은 그 세션이 자기 것을 소유하므로 종료 대상이 아니다.
 
+**조사만 맡길 때는 `name` 을 주지 않는다.**
+이름을 준 에이전트는 `SendMessage` 로 부를 수 있는 팀원으로 등록되고 그 등록에 tmux pane 이 필요하다.
+Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에 shim 디렉터리가 없으면
+`Could not determine current tmux pane/window` 로 실패한다.
+이름이 없어도 스폰 결과의 식별자로 `SendMessage` 를 보낼 수 있다.
+
 ### worker 를 띄웠으면 끝나고 정리한다
 
 `orchestration` 으로 넘긴 작업이 끝나면 그때마다 정리한다. 쌓아두고 나중에 하지 않는다.
