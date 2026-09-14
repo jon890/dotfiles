@@ -165,6 +165,10 @@ State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STAT
 
 스킬 문서의 판정 기준은 `harness-cleanup` 의 `references/judgment.md` 가 소유한다.
 
+**스킬 문서를 쓰거나 고치기 전에 `~/.claude/references/skill-structure.md` 를 읽는다.**
+목표와 워크플로우 개요와 워크플로우 상세를 어떤 순서로 두는지,
+무엇을 references 로 내리는지가 거기 있다.
+
 **공용 스킬을 고치기 전에 `~/.claude/references/skill-sync.md` 를 읽는다.**
 어느 층을 고쳐야 하는지, 어떤 방향으로 전파되는지, 층을 올릴 때 무엇을 하는지가 거기 있다.
 
