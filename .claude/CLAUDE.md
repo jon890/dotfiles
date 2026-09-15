@@ -13,7 +13,7 @@ Coordinate specialized agents, tools, and skills so work is completed accurately
 - Prefer evidence over assumptions: verify outcomes before final claims.
 - Choose the lightest-weight path that preserves quality.
 - Consult official docs before implementing with SDKs/frameworks/APIs.
-    </operating_principles>
+      </operating_principles>
 
 <delegation_rules>
 
@@ -111,15 +111,12 @@ State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STAT
 
 ### 조사를 맡긴 하위 역할은 회신을 받은 뒤 종료한다
 
-**회신을 받고 더 물을 것이 없으면 그 자리에서 종료한다.** 다음 요청까지 미루지 않는다.
-끝난 역할이 남아 있으면 목록에 도는 것과 끝난 것이 섞여, 다음에 누구에게 물을지 매번 가려야 한다.
+**회신을 받고 더 물을 것이 없으면 그 자리에서 종료한다.** 
+
 
 - 판정표나 결과를 받았고 되물을 것이 없으면 종료한다
 - 잘린 회신을 다시 받아야 하면 그것을 받은 뒤에 종료한다
 - 오래 도는 작업을 맡겼으면 그 작업이 끝날 때까지 둔다
-
-한 번에 여러 역할을 띄웠으면 종료도 한 번에 한다.
-다른 세션에 넘긴 작업은 그 세션이 자기 것을 소유하므로 종료 대상이 아니다.
 
 **조사만 맡길 때는 `name` 을 주지 않는다.**
 이름을 준 에이전트는 `SendMessage` 로 부를 수 있는 팀원으로 등록되고 그 등록에 tmux pane 이 필요하다.
@@ -129,8 +126,7 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 
 ### worker 를 띄웠으면 끝나고 정리한다
 
-`orchestration` 으로 넘긴 작업이 끝나면 그때마다 정리한다. 쌓아두고 나중에 하지 않는다.
-워크트리와 터미널이 저장소마다 쌓이면 다음 작업이 어느 것을 써야 할지 매번 판단해야 한다.
+`orchestration` 으로 넘긴 작업이 끝나면 그때마다 정리한다. 워크트리와 터미널이 저장소마다 쌓이면 다음 작업이 어느 것을 써야 할지 매번 판단해야 한다.
 
 정리 범위는 아래와 같다.
 
@@ -148,15 +144,15 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 - **새 워크트리에서 claude 를 처음 띄우면 폴더 신뢰 확인이 떠서 `worker-start` 가 `agent_readiness` 단계에서 `timeout` 으로 실패한다.**
 터미널과 워크트리는 이미 만들어져 있으므로, 그 터미널에서 `claude` 를 직접 띄워 확인을 통과시킨 뒤 `--retry-of` 로 다시 붙인다.
 이미 쓰던 워크트리를 재사용하면 이 단계가 없다.
-- **`--retry-of` 로 재시도할 때 `--worktree` 를 함께 명시한다.** 빠뜨리면 코디네이터의 워크트리를 가정해 `terminal_worktree_mismatch` 로 거절된다.
-- **`--retry-of` 는 `--task` 와 함께 쓴다.** `--spec` 을 같이 주면 새 Task 를 만들려는 것으로 보고 거절한다.
+- `**--retry-of` 로 재시도할 때 `--worktree` 를 함께 명시한다.** 빠뜨리면 코디네이터의 워크트리를 가정해 `terminal_worktree_mismatch` 로 거절된다.
+- `**--retry-of` 는 `--task` 와 함께 쓴다.** `--spec` 을 같이 주면 새 Task 를 만들려는 것으로 보고 거절한다.
 실패한 Dispatch 의 Task ID 를 그대로 넘긴다.
 - **끝난 워커의 터미널을 `--terminal` 로 재사용할 때 `--agent` 를 빼고 부른다.** 둘을 함께 주면 거절한다.
 - 긴 지시는 앞부분이 잘려 도착할 수 있다. worker 가 되물으면 잘린 부분만 짧게 다시 보낸다.
 
 #### 회신을 기다리는 동안 다음 단계를 준비한다
 
-**`check --wait` 을 백그라운드로 돌린다.** 앞에서 돌리면 그 시간 동안 코디네이터 세션이 막혀
+`**check --wait` 을 백그라운드로 돌린다.** 앞에서 돌리면 그 시간 동안 코디네이터 세션이 막혀
 다른 일을 하지 못한다. 15분짜리 대기를 연달아 걸면 그 사이 아무것도 준비하지 못한 채 기다리게 된다.
 
 기다리는 동안 다음 단계에 쓸 것을 준비한다. 업무 댓글 초안, 다음 워커의 지시문이 여기 해당한다.
@@ -199,13 +195,13 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 
 이 머신의 zsh 환경에서 실측한 것이다.
 
-- **`noclobber` 가 켜져 있다.** 기존 파일에 `>` 로 덮어쓰면 종료 코드 1 과
+- `**noclobber` 가 켜져 있다.** 기존 파일에 `>` 로 덮어쓰면 종료 코드 1 과
 `file exists` 한 줄만 나오고 파일은 옛 내용을 유지한다.
 파일이 바뀐 줄로 알고 다음 단계로 가면 잘못된 값을 측정한다.
 덮어쓸 때 `>|` 를 쓰거나 `rm -f` 를 먼저 한다.
-- **`>>` 도 파일이 없으면 거부한다.** 같은 `no such file or directory` 가 나온다.
+- `**>>` 도 파일이 없으면 거부한다.** 같은 `no such file or directory` 가 나온다.
 없는 파일에 이어 쓸 때는 `>>|` 를 쓰거나 `: >| 파일` 로 먼저 만든다.
-- **`timeout` 과 `gtimeout` 이 없다.** 시간으로 끊어야 하면 그 도구 자신의
+- `**timeout` 과 `gtimeout` 이 없다.** 시간으로 끊어야 하면 그 도구 자신의
 타임아웃 옵션을 쓰고, 없으면 백그라운드로 돌린다.
 
 ## 한국어 산출물 점검
@@ -220,9 +216,6 @@ CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채�
 아티팩트로 발행하는 페이지는 내보내기 전에 별도 검토 역할에 넘긴다.
 그 밖에 어떤 산출물이 이 층을 거치는지는 `korean-check` 스킬이,
 검토자에게 줄 것은 그 스킬의 `references/review-axes.md` 가 소유한다.
-
-검토 역할을 띄울 수 없으면 사용자에게 검토를 청한다.
-건너뛰었으면 그 사실을 보고에 한 줄로 적는다.
 
 ## 업무 문체
 
@@ -240,7 +233,7 @@ Dooray 업무를 생성하거나 수정할 때, 댓글을 달 때, 사내 회신
 ## 개인 지식과 사내 지식
 
 - 개인 결정, 취향, 학습 내용은 `brain-search` 스킬로 조회한다.
-- qmd는 `~/.local/bin-pinned/qmd`를 사용하며 `bun.lock`을 건드려 복구하지 않는다.
 - 회사 규칙과 Dooray 업무·위키는 `nbrain` 스킬로 조회한다.
 - 비공개 지식을 공개 맥락에 노출하지 않는다.
 - 개인 지식 기반을 추가하거나 변경할 때에는 사용자의 승인을 받는다.
+
