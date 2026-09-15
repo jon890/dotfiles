@@ -59,3 +59,7 @@
 !.codex/
 .codex/*
 !.codex/AGENTS.md
+!.codex/career-write.config.toml
+!.codex/career-research.config.toml
+!.codex/cron-light.config.toml
+!.codex/final-review.config.toml
