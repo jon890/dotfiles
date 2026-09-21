@@ -10,7 +10,7 @@ Dooray 업무와 댓글, 사내 회신, 팀 공유가 대상이다.
 | --- | ----------------------------------------- |
 | 언어  | `~/.claude/rules/korean-style.md`         |
 | 구조  | `~/.claude/rules/writing-structure.md`    |
-| 매체  | `~/.claude/rules/markdown-readability.md` |
+| 매체  | `~/.claude/skills/korean-check/references/markdown-readability.md` |
 | 개인  | 이 문서                                      |
 
 
