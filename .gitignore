@@ -10,6 +10,11 @@
 !.zshrc
 !.tool-versions
 
+# git 훅 (core.hooksPath = .githooks)
+!.githooks/
+.githooks/*
+!.githooks/pre-commit
+
 # SSH 설정 파일
 !.ssh/
 .ssh/*

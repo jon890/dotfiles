@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""공개 저장소에 사적인 접속 정보가 올라가는 것을 막는다.
+
+이 저장소는 public 이다. `.ssh/config` 는 추적되므로 여기 적은 것은 누구나 읽는다.
+집 서버나 사내 장비처럼 공개하면 안 되는 호스트는 `~/.ssh/config.local` 에 둔다.
+그 파일은 `.gitignore` 가 막고, `.ssh/config` 의 `Include` 가 읽어 간다.
+
+판정은 허용 목록으로 한다. 금지 목록은 새 호스트를 추가할 때마다 빠진다.
+"""
+
+from __future__ import annotations
+
+import ipaddress
+import re
+import subprocess
+import sys
+
+TRACKED_SSH_CONFIG = ".ssh/config"
+
+# 공개해도 손해가 없는 코드 호스팅 도메인만 둔다.
+ALLOWED_SUFFIXES = (
+    "github.com",
+    "gitlab.com",
+    "bitbucket.org",
+    "codeberg.org",
+)
+
+HOSTNAME = re.compile(r"^\s*HostName\s+(\S+)", re.IGNORECASE)
+HOST = re.compile(r"^\s*Host\s+(\S.*)", re.IGNORECASE)
+
+
+def staged(path: str) -> str | None:
+    """스테이징된 내용을 읽는다. 이번 커밋에 없으면 None 이다."""
+    listed = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM", "--", path],
+        capture_output=True, text=True,
+    )
+    if not listed.stdout.strip():
+        return None
+    blob = subprocess.run(
+        ["git", "show", f":{path}"], capture_output=True, text=True,
+    )
+    return blob.stdout if blob.returncode == 0 else None
+
+
+def is_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
+
+
+def allowed(value: str) -> bool:
+    host = value.lower().rstrip(".")
+    return any(host == s or host.endswith("." + s) for s in ALLOWED_SUFFIXES)
+
+
+def main() -> int:
+    content = staged(TRACKED_SSH_CONFIG)
+    if content is None:
+        return 0
+
+    problems = []
+    current = "(Host 선언 전)"
+    for lineno, line in enumerate(content.splitlines(), 1):
+        matched = HOST.match(line)
+        if matched:
+            current = matched.group(1).strip()
+            continue
+        matched = HOSTNAME.match(line)
+        if not matched:
+            continue
+        value = matched.group(1)
+        if is_ip(value):
+            problems.append(
+                f"  {TRACKED_SSH_CONFIG}:{lineno}  Host {current} 의 HostName 이 IP 리터럴이다 ({value})"
+            )
+        elif not allowed(value):
+            problems.append(
+                f"  {TRACKED_SSH_CONFIG}:{lineno}  Host {current} 의 HostName 이 허용 목록에 없다 ({value})"
+            )
+
+    if not problems:
+        return 0
+
+    print("커밋을 멈춘다. 이 저장소는 public 이고 .ssh/config 는 추적된다.\n", file=sys.stderr)
+    print("\n".join(problems), file=sys.stderr)
+    print(
+        "\n사적인 호스트는 ~/.ssh/config.local 로 옮긴다. .gitignore 가 그 파일을 막고,"
+        "\n.ssh/config 의 `Include ~/.ssh/config.local` 이 읽어 간다."
+        "\n공개해도 되는 코드 호스팅이면 이 훅의 ALLOWED_SUFFIXES 에 더한다.",
+        file=sys.stderr,
+    )
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
