@@ -96,6 +96,7 @@ State root: `.omc/` by default, or `$OMC_STATE_DIR/{project-id}/` when `OMC_STAT
 ## 작업 방식
 
 - 커밋은 관심사별로 분리한다.
+- 저장소의 관례를 반드시 따를 필요는 없다. 더 나은 패턴이 있으면 사용자에게 제안하고 적용한다.
 
 ### 다른 저장소를 바꾸는 작업은 `orchestration` 으로 위임한다
 
