@@ -24,9 +24,12 @@ cd ~/.claude/skills && for n in *; do printf '%-24s %s\n' "$n" "$(readlink "$n" 
 **`fos-skills` 가 원본이고 `AiSdtSkill` 의 것은 사본이다.**
 팀원이 저장소를 둘 받지 않아도 되게 사본을 두고, 어긋남은 스크립트가 잡는다.
 
-내보내는 스킬은 `content-preview`, `planning`, `build-with-teams`, `docs-check`, `review-fix` 다.
+내보내는 스킬은 `content-preview`, `planning`, `build-with-teams`, `docs-check`, `review-fix`, `korean-check` 다.
 스킬이 아닌 공용 도구도 함께 내보낸다. `fos-skills/tools/<이름>` 이 팀 저장소의 같은 경로가 된다.
 두 목록의 단일 소스는 `fos-skills/scripts/export-to-team.sh` 의 `SHARED_SKILLS` 와 `SHARED_TOOLS` 다.
+
+`build-to-learn` 과 `harness-cleanup` 은 개인 스킬이라 내보내지 않는다.
+목록이 여섯인 것은 의도다.
 
 ```bash
 cd ~/personal/fos-skills
