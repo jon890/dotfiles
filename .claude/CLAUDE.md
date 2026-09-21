@@ -183,15 +183,10 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 - 스킬이 다루지 않아 사람에게 물어야 했던 판단
 - 산문 대신 명령이나 스크립트로 대신할 수 있는 곳
 
-승인받은 항목만 수정하고, 감사 절차가 필요하면 `harness-cleanup` 을 따른다.
-CLI 나 외부 도구 자체의 결함이면 스킬을 우회 지침으로 채우지 말고 해당 저장소에 이슈로 등록한다.
-
 ## 브라우저
 
-브라우저 작업은 `~/.claude/scripts/browser-driver`를 사용한다.
-
-**첫 명령을 쓰기 전에 `browser-driver help` 를 읽는다.** 명령 목록과 함정을 그 출력이 소유한다.
-백엔드 선택과 백엔드별 함정은 그 드라이버의 README 가 소유한다.
+브라우저 작업은 `~/.claude/scripts/browser-driver` 를 쓴다.
+명령 목록은 `browser-driver help` 가, 백엔드 선택과 백엔드별 함정은 그 드라이버의 README 가 소유한다.
 
 ## 셸
 
