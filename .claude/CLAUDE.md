@@ -81,7 +81,7 @@ Playwright 의 `trace: "retain-on-failure"` 로 남은 `test-results/` 도 다�
 - 스킬을 만들거나 구조를 바꾸면 `skill-creator`를 사용한다.
 - 반복되는 heredoc은 `scripts/`로 분리한다.
 
-스킬 문서의 판정 기준은 `harness-cleanup` 의 `references/judgment.md` 가 소유한다.
+스킬 문서의 판정 기준은 `~/.claude/skills/harness-cleanup/references/judgment.md` 가 소유한다.
 
 **스킬 문서를 쓰거나 고치기 전에 `~/.claude/references/skill-structure.md` 를 읽는다.**
 목표와 워크플로우 개요와 워크플로우 상세를 어떤 순서로 두는지,
@@ -129,7 +129,7 @@ Playwright 의 `trace: "retain-on-failure"` 로 남은 `test-results/` 도 다�
 
 아티팩트로 발행하는 페이지는 내보내기 전에 별도 검토 역할에 넘긴다.
 그 밖에 어떤 산출물이 이 층을 거치는지는 `korean-check` 스킬이,
-검토자에게 줄 것은 그 스킬의 `references/review-axes.md` 가 소유한다.
+검토자에게 줄 것은 `~/.claude/skills/korean-check/references/review-axes.md` 가 소유한다.
 
 ## 업무 문체
 

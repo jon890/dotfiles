@@ -3,7 +3,7 @@
 **목표: 스킬을 처음 여는 사람이 무엇을 하는 스킬인지, 어떤 순서로 도는지, 지금 어느 단계인지를 차례로 알게 한다.**
 
 어느 층을 고칠지는 [`skill-sync.md`](skill-sync.md) 가, 문장을 유지할지 지울지는
-`harness-cleanup` 의 `references/judgment.md` 가 소유한다.
+`~/.claude/skills/harness-cleanup/references/judgment.md` 가 소유한다.
 이 문서는 **남기기로 한 것을 어디에 어떤 순서로 두는지**만 소유한다.
 
 ## 세 층
@@ -110,9 +110,8 @@ gh release create <태그> --title "<태그>" --notes-file <본문파일>  # 이
 `harness-cleanup` 으로 감사한다. 그 스킬의 「스킬 구조와 유지보수성」 축이 이 문서를 기준으로 판정한다.
 
 ```bash
-cd ~/.claude/skills/harness-cleanup
-python3 scripts/collect_targets.py "$REPO" --scope "$SCOPE"
-python3 scripts/run_doc_snippets.py "$SKILL_MD"
+python3 ~/.claude/skills/harness-cleanup/scripts/collect_targets.py "$REPO" --scope "$SCOPE"
+python3 ~/.claude/skills/harness-cleanup/scripts/run_doc_snippets.py "$SKILL_MD"
 ```
 
 `$SCOPE` 는 저장소 루트 밑의 스킬 디렉터리다.
