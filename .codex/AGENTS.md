@@ -122,12 +122,11 @@ NED와 F1 같은 평가지표 이름을 성과처럼 나열하지 않는다.
 - 강조는 목표, 중요한 판단 조건과 사용자가 찾아야 할 핵심에 적용한다.
 - 파일 참조는 실제 파일을 열 수 있는 Markdown 링크로 연결한다. 실행 명령의 경로는 복사해 사용할 수 있도록 코드 원문으로 쓴다.
 
-문서를 작성한 뒤 다음 검사기를 실행한다.
-두 검사기는 통과하면 0, 위반을 찾으면 1, 실행하지 못하면 2로 끝난다.
+문서를 작성한 뒤 다음 명령으로 검사한다.
+표기 검사기와 가독성 검사기를 함께 돌려, 통과하면 0, 위반을 찾으면 1, 실행하지 못하면 2로 끝난다.
 
 ```bash
-~/.claude/scripts/korean-style-check.sh <파일.md>
-python3 ~/.claude/scripts/check-readability.py <파일.md>
+~/.claude/skills/korean-check/scripts/check.sh "$FILE"
 ```
 
 한국어는 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
