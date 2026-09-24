@@ -79,7 +79,7 @@ gh release create <태그> --title "<태그>" --notes-file <본문파일>  # 이
 ```
 
 값을 변수로 두고 블록 앞에서 무엇을 채우는지 한 줄로 적는다.
-`harness-cleanup` 의 `scripts/run_doc_snippets.py` 가 이것을 실제로 돌려 확인한다.
+`~/.claude/skills/harness-cleanup/scripts/run_doc_snippets.py` 가 이것을 실제로 돌려 확인한다.
 
 ## references 로 내리는 기준
 
