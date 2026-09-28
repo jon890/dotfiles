@@ -19,13 +19,14 @@ hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
 3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
    `--terminal` 과 `--model` 은 함께 쓸 수 없지만, 처음 띄울 때 준 모델이 그 터미널에 남아 있다
 
-**기존 체크아웃(`--worktree id:<repo-id>::<path>`)에 codex worker 를 띄우면 `agent_readiness` 가 `timeout` 으로 끝날 수 있다.**
+**기존 체크아웃(`--worktree id:<repo-id>::<path>`)에 codex worker 를 띄우면 `agent_readiness` 가 `timeout` 으로 끝날 때가 많다.**
 화면은 이미 입력 대기인데 `terminal wait --for tui-idle` 도 시간 초과로 끝난다.
-확인 창에 걸린 경우와 달리 고를 선택지가 없다.
-새로 띄우지 않고 위 3번 명령에 `--timeout-ms 180000` 을 붙여 그 터미널에 다시 붙이면 통과한다.
-처음 띄울 때 `--timeout-ms 180000` 을 줘도 준비 확인은 실패한다. 늘린 대기가 통하는 것은 재부착 때뿐이다.
-2026-09-28 에 홈 저장소 체크아웃에서 네 번 띄워 네 번 모두 준비 확인이 실패했다.
-재부착은 기본 대기로 한 번 통과하고 한 번 실패했으며, `--timeout-ms 180000` 을 준 재부착은 통과했다.
+확인 창이 없어 고를 선택지도 없다.
+위 3번 명령으로 그 터미널에 다시 붙이면 통과할 때도 있고 실패할 때도 있다. `--timeout-ms` 를 늘려도 결과가 달라지지 않았다.
+두 번 실패하면 같은 Task 를 `--agent claude` 와 `--retry-of` 로 다시 띄운다. 같은 체크아웃에서 claude worker 는 준비 확인을 바로 통과했다.
+2026-09-28 에 홈 저장소 체크아웃에서 codex 로 처음 네 번 띄웠고 네 번 모두 실패했다. 그중 한 번은 `--timeout-ms 180000` 을 줬다.
+재부착은 기본 대기로 한 번 통과하고 한 번 실패했고, `--timeout-ms 180000` 을 줬을 때도 한 번 통과하고 한 번 실패했다.
+claude 는 한 번에 통과했다.
 
 codex worker 는 GPT 6 계열을 쓰고, 모델과 effort 는 작업 난이도를 보고 코디네이터가 정한다.
 모델 ID 는 `~/.codex/config.toml` 의 `model` 값으로 확인한다.
