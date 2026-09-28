@@ -19,8 +19,11 @@ hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
 3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
    `--terminal` 과 `--model` 은 함께 쓸 수 없지만, 처음 띄울 때 준 모델이 그 터미널에 남아 있다
 
-설계 판단이 섞인 조사와 구현은 `--model gpt-5.6-sol --effort high` 로 넘긴다.
-그 밖에는 기본값을 쓴다. 적용 여부는 `worker-start` 응답의 `model` 과 `effort` 로 확인한다.
+codex worker 는 GPT 6 계열을 쓰고, 모델과 effort 는 작업 난이도를 보고 코디네이터가 정한다.
+모델 ID 는 `~/.codex/config.toml` 의 `model` 값으로 확인한다.
+`worker-start --help` 에 적힌 대로 `--effort` 는 `--model` 없이 쓸 수 없다.
+effort 를 지정하려면 모델 ID 도 함께 넘긴다.
+적용 여부는 `worker-start` 응답의 `launch.effective` 로 확인한다.
 
 ## 지시를 보낼 때
 
