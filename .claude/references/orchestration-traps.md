@@ -44,8 +44,20 @@ hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
 앞에서 돌리면 그동안 코디네이터가 막힌다.
 둘째 대기는 `waiter_exists` 로 바로 끝나고, 거기 붙인 `--ack` 만 처리된다.
 
+**세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` 로 끝나면 이전 세션의 대기가 남은 것이다.**
+이전 세션의 백그라운드 `check --wait` 는 세션이 끝나도 부모 없는 프로세스로 남아 대기 자리를 쥔다.
+그 대기가 받은 메시지는 아무에게도 전달되지 않는다.
+`ps -ax -o pid,ppid,lstart,command | grep "orchestration check" | grep <run_id>` 로 찾는다.
+부모 PID 가 1 이고 시작 시각이 이 세션보다 앞선 것이 그것이다. 그 프로세스와 부모 셸을 `kill` 하고 대기를 다시 건다.
+다른 run 의 대기는 다른 세션의 것이므로 건드리지 않는다.
+
 `You have N orchestration message` 알림은 heartbeat 일 때가 많다.
 `check` 로 읽고 `--ack` 만 하고, 대기는 살아 있는 것을 그대로 둔다.
+
+**heartbeat 가 오는데 커밋과 화면이 몇 분째 그대로면 `terminal read --screen` 으로 권한 확인 창을 본다.**
+heartbeat 는 worker 가 멈춰 있어도 온다.
+하위 에이전트가 `;` 로 이은 긴 셸을 쓰면 `Parse error` 로 자동 승인되지 않고 `Do you want to proceed?` 에서 기다린다.
+명령이 무엇을 하는지 읽고, 영향이 worker 자신의 임시 디렉터리 안이면 승인하고 사용자에게 알린다. 아니면 사용자에게 묻는다.
 
 **worker 의 워크트리에서 내가 파일을 고치지 않는다.**
 worker 가 `git add -A` 를 하면 내 변경이 그쪽 커밋에 섞인다.
