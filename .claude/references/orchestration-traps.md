@@ -22,8 +22,16 @@ hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
 **codex worker 의 `agent_readiness` 는 터미널 제목으로 통과한다.**
 Orca 는 제목에 `Codex` 와 `ready` 가 함께 있어야 입력 대기로 본다. Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 `terminal_title = ["app-name", "run-state", "project-name"]` 가 있어야 하고, 시작 때 자기 업데이트로 빠지지 않게 `check_for_update_on_startup = false` 를 둔다.
 
-codex worker 는 GPT 6 계열을 쓰고, 모델과 effort 는 작업 난이도를 보고 코디네이터가 정한다.
-모델 ID 는 `~/.codex/config.toml` 의 `model` 값으로 확인한다.
+**codex worker 의 모델과 effort 는 Task 마다 코디네이터가 고른다.**
+`~/.codex/config.toml` 의 `model` 은 대화형 codex 의 기본값이다. 그 값을 그대로 넘기면 모든 Task 가 같은 모델로 돈다.
+고를 수 있는 GPT 6 계열 모델과 모델별 설명, effort 목록은 아래 명령으로 본다.
+
+```bash
+python3 -c "import json; [print(m['slug'], '|', m['description'], '|', ','.join(l['effort'] for l in m['supported_reasoning_levels'])) for m in json.load(open('$HOME/.codex/models_cache.json'))['models'] if m.get('visibility')=='list' and m['slug'].startswith('gpt-6')]"
+```
+
+목록의 설명과 Task 의 범위, 틀렸을 때 되돌리는 비용을 보고 모델과 effort 를 함께 고른다.
+고른 조합과 이유를 사용자에게 알리는 dispatch 보고에 한 줄 적는다.
 `worker-start --help` 에 적힌 대로 `--effort` 는 `--model` 없이 쓸 수 없다.
 effort 를 지정하려면 모델 ID 도 함께 넘긴다.
 적용 여부는 `worker-start` 응답의 `launch.effective` 로 확인한다.
