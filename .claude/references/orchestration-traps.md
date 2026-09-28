@@ -19,14 +19,8 @@ hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
 3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
    `--terminal` 과 `--model` 은 함께 쓸 수 없지만, 처음 띄울 때 준 모델이 그 터미널에 남아 있다
 
-**기존 체크아웃(`--worktree id:<repo-id>::<path>`)에 codex worker 를 띄우면 `agent_readiness` 가 `timeout` 으로 끝날 때가 많다.**
-화면은 이미 입력 대기인데 `terminal wait --for tui-idle` 도 시간 초과로 끝난다.
-확인 창이 없어 고를 선택지도 없다.
-위 3번 명령으로 그 터미널에 다시 붙이면 통과할 때도 있고 실패할 때도 있다. `--timeout-ms` 를 늘려도 결과가 달라지지 않았다.
-두 번 실패하면 같은 Task 를 `--agent claude` 와 `--retry-of` 로 다시 띄운다. 같은 체크아웃에서 claude worker 는 준비 확인을 바로 통과했다.
-2026-09-28 에 홈 저장소 체크아웃에서 codex 로 처음 네 번 띄웠고 네 번 모두 실패했다. 그중 한 번은 `--timeout-ms 180000` 을 줬다.
-재부착은 기본 대기로 한 번 통과하고 한 번 실패했고, `--timeout-ms 180000` 을 줬을 때도 한 번 통과하고 한 번 실패했다.
-claude 는 한 번에 통과했다.
+**codex worker 의 `agent_readiness` 는 터미널 제목으로 통과한다.**
+Orca 는 제목에 `Codex` 와 `ready` 가 함께 있어야 입력 대기로 본다. Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 `terminal_title = ["app-name", "run-state", "project-name"]` 가 있어야 하고, 시작 때 자기 업데이트로 빠지지 않게 `check_for_update_on_startup = false` 를 둔다.
 
 codex worker 는 GPT 6 계열을 쓰고, 모델과 effort 는 작업 난이도를 보고 코디네이터가 정한다.
 모델 ID 는 `~/.codex/config.toml` 의 `model` 값으로 확인한다.
