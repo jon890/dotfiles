@@ -6,6 +6,9 @@ CLI 가 인자 오류로 거절하는 것은 적지 않는다. 거절 메시지�
 
 ## 띄우기
 
+**worker 는 `--agent claude` 로 띄운다.** 사용자가 정한 기본값이다.
+사용자가 다른 에이전트를 지정한 경우에만 바꾼다. 아래 codex 항목은 그때만 적용한다.
+
 **`worker-start` 가 `agent_readiness` 에서 실패하면 에이전트가 첫 화면의 확인에 멈춘 것이다.**
 원인은 `worker-show --dispatch <id>` 의 `lastFailure` 에 나온다.
 실측한 것은 claude 의 폴더 신뢰 확인, codex 의 업데이트 안내(`agent-update-prompt`)와
@@ -18,6 +21,16 @@ hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
 2. `terminal wait --for tui-idle` 로 입력 대기 상태를 확인한다
 3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
    `--terminal` 과 `--model` 은 함께 쓸 수 없지만, 처음 띄울 때 준 모델이 그 터미널에 남아 있다
+
+**`--worktree new-top-level` 은 대상 저장소 안에 워크트리를 만든다.**
+Orca 1.4.215 에서 `worker-start --worktree new-top-level --name <name>` 이 `<repo>/worktrees/<repo>/<name>` 에 워크트리를 만들었다(2026-09-29 실측).
+그 경로가 `.gitignore` 에 없어 main checkout 의 `git status` 에 `?? worktrees/` 로 나타났다.
+이 상태에서 main 에서 `git add -A` 를 하면 워크트리가 저장소에 커밋될 수 있다.
+워크트리를 지운 뒤에도 Orca 가 `worktrees/<repo>/.orca-worktree-trash` 를 남겼다.
+
+띄운 직후 `git -C <repo> status --short` 로 확인한다.
+`worktrees/` 가 보이면 공유되는 `.gitignore` 대신 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다.
+`.orca-worktree-trash` 는 Orca 가 관리하므로 지우지 않는다.
 
 **codex worker 의 `agent_readiness` 는 터미널 제목으로 통과한다.**
 Orca 는 제목에 `Codex` 와 `ready` 가 함께 있어야 입력 대기로 본다. Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 `terminal_title = ["app-name", "run-state", "project-name"]` 가 있어야 하고, 시작 때 자기 업데이트로 빠지지 않게 `check_for_update_on_startup = false` 를 둔다.
