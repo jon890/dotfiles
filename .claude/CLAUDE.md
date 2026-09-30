@@ -97,7 +97,8 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 타임아웃 옵션을 쓰고, 없으면 백그라운드로 돌린다.
 - **셸 변수 이름을 `path`, `fpath`, `cdpath`, `manpath` 로 두지 않는다.** zsh 에서 이 이름들은 `PATH` 류 환경 변수와 묶인 배열이라,
 값을 넣으면 그 환경 변수가 바뀐다. `path` 면 값에 없는 디렉터리의 명령이 `command not found` 로 실패한다. `for`, `while read`, 함수 안의 `local` 도 해당한다.
-- **변수 뒤에 `:` 을 바로 붙이지 않는다.** `$b:src` 는 zsh 가 수정자로 읽는다. `${b}:src` 로 쓴다.
+- **변수 뒤에 `:` 을 바로 붙이지 않는다.** `$b:src` 는 `:s` 수정자로 읽혀 `bad substitution` 이 나고,
+`$b:t` 나 `$b:h` 는 오류 없이 값이 바뀐다(`/a/b/c.txt` 가 `c.txt`). `${b}:src` 로 쓴다.
 
 ## 한국어 산출물 점검
 
