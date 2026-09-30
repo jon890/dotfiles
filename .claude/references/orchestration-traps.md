@@ -6,8 +6,11 @@ CLI 가 인자 오류로 거절하는 것은 적지 않는다. 거절 메시지�
 
 ## 띄우기
 
-**worker 는 `--agent claude` 로 띄운다.** 사용자가 정한 기본값이다.
-사용자가 다른 에이전트를 지정한 경우에만 바꾼다. 아래 codex 항목은 그때만 적용한다.
+**worker 에이전트는 Task 마다 `claude` 와 `codex`(GPT) 중에서 고른다.** 한쪽을 기본으로 두지 않는다.
+판단 재료는 Task 의 범위, 계획서가 얼마나 구체적인지, 틀렸을 때 되돌리는 비용, 토큰 비용이다.
+계획서가 식별자와 검증 명령까지 정해 둔 구현은 codex 의 주력 모델로도 충분하고 저렴하다.
+설계 판단이 남았거나 여러 모듈의 계약을 맞춰야 하는 Task 는 claude 를 먼저 검토한다.
+고른 에이전트와 모델, 이유를 dispatch 보고에 한 줄 적는다. 사용자가 에이전트를 지정하면 그것을 따른다.
 
 **`worker-start` 가 `agent_readiness` 에서 실패하면 에이전트가 첫 화면의 확인에 멈춘 것이다.**
 원인은 `worker-show --dispatch <id>` 의 `lastFailure` 에 나온다.
@@ -37,11 +40,14 @@ Orca 는 제목에 `Codex` 와 `ready` 가 함께 있어야 입력 대기로 본
 
 **codex worker 의 모델과 effort 는 Task 마다 코디네이터가 고른다.**
 `~/.codex/config.toml` 의 `model` 은 대화형 codex 의 기본값이다. 그 값을 그대로 넘기면 모든 Task 가 같은 모델로 돈다.
-고를 수 있는 GPT 6 계열 모델과 모델별 설명, effort 목록은 아래 명령으로 본다.
+고를 수 있는 모델과 모델별 설명, effort 목록은 아래 명령으로 본다.
 
 ```bash
-python3 -c "import json; [print(m['slug'], '|', m['description'], '|', ','.join(l['effort'] for l in m['supported_reasoning_levels'])) for m in json.load(open('$HOME/.codex/models_cache.json'))['models'] if m.get('visibility')=='list' and m['slug'].startswith('gpt-6')]"
+codex debug models | python3 -c "import json,sys; d=json.load(sys.stdin); [print(m['slug'], '|', m['description'], '|', ','.join(l['effort'] for l in m['supported_reasoning_levels'])) for m in d['models'] if m.get('visibility')=='list']"
 ```
+
+**`~/.codex/models_cache.json` 을 읽지 않는다.** 대화형 codex 를 띄울 때만 갱신되는 캐시라 새 모델이 빠진다.
+2026-09-30 캐시(9월 28일, codex 0.155.1)에는 `gpt-6.1-sol` 이 없었고, `codex debug models` 에는 있었다.
 
 목록의 설명과 Task 의 범위, 틀렸을 때 되돌리는 비용을 보고 모델과 effort 를 함께 고른다.
 고른 조합과 이유를 사용자에게 알리는 dispatch 보고에 한 줄 적는다.
