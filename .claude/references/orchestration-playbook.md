@@ -35,19 +35,57 @@
 
 ## 1. 에이전트 고르기
 
-에이전트는 Task 마다 `claude` 와 `codex`(GPT) 중에서 고른다. 한쪽을 기본으로 두지 않는다.
-사용자가 지정하면 그것을 따른다.
+**모델과 effort 는 Task 마다 성능과 가격을 비교해 고르고, 고른 이유를 dispatch 보고에 한 줄로 남긴다.**
+기본값을 두지 않는다. 사용자가 지정하면 그것을 따른다.
 
-| Task 의 성격 | 고를 쪽 |
+### 모델
+
+Task 를 셋 중 하나로 나누고 그 줄의 후보 가운데 가장 싼 것부터 검토한다.
+
+| Task 성격 | 예 | 후보 |
+| --- | --- | --- |
+| 수정 위치와 계약이 지시서에 정해졌다 | 리뷰 지적 반영, 정해진 필드와 문구 변경, 설정 한 줄 | `gpt-6-luna`, `gpt-6.1-sol` |
+| 저장소를 탐색하며 구현하고 판단은 `ask` 로 올린다 | 계획서가 있는 기능 구현, 여러 파일 수정 | `gpt-6.1-sol`, Claude Sonnet 5.5 |
+| 틀렸을 때 되돌리는 비용이 크다 | 인증과 권한 경계, 데이터 마이그레이션, 여러 저장소의 계약 설계 | Claude Opus 5.5, `gpt-6.1-sol` 의 `high` |
+
+비교 근거다(2026-09-30 공식 자료. 값이 바뀌면 아래 출처에서 다시 확인한다).
+
+| 모델 | 입력 / 출력 ($/1M 토큰) | 코딩 지표 |
+| --- | --- | --- |
+| `gpt-6-luna` | 0.10 / 0.50 | DeepSWE 1.1: high 59.3, max 66.6 |
+| `gpt-6.1-sol` | 2 / 10 | DeepSWE 1.1: medium 73.0, high 75.2 |
+| `gpt-6-astra` | 10 / 50 | DeepSWE 1.1: xhigh 74.1 |
+| Claude Sonnet 5.5 | 2 / 10 | FrontierCode 1.1: xhigh 52.1%, Terminal-Bench 4.0: 70.6% |
+| Claude Opus 5.5 | 4 / 20 | FrontierCode 1.1: max 54.4%, Terminal-Bench 4.0: xhigh 66.4% |
+
+- `gpt-6-astra` 와 Claude Fable 5.1 은 `gpt-6.1-sol` 의 5배 값인데 코딩 지표가 앞서지 않는다. 다른 후보가 같은 Task 에서 실패했을 때만 검토한다
+- Codex 구독의 차감률은 API 가격과 비율이 같다. `gpt-6-astra` 1회는 `gpt-6.1-sol` 5회, `gpt-6-luna` 100회에 해당한다
+- 두 제공자가 같은 지표를 거의 발표하지 않아 제공자 사이의 점수는 직접 비교하지 않는다
+- 출처: developers.openai.com/api/docs/pricing, learn.chatgpt.com/docs/pricing, platform.claude.com/docs/en/about-claude/pricing, 각 모델 발표 페이지
+
+### effort
+
+**`medium` 에서 시작한다.** 두 제공자 모두 에이전트 코딩의 시작점으로 권한다. `gpt-6-luna` 만 Codex 권장 시작점이 `high` 다.
+
+| 단계 | 올리거나 내리는 조건 |
 | --- | --- |
-| 계획서가 식별자와 검증 명령까지 정해 둔 구현 | codex 주력 모델. 이것으로 충분하고 토큰 비용이 낮다 |
-| 설계 판단이 남았거나 여러 모듈의 계약을 맞춰야 한다 | claude 를 먼저 검토한다 |
+| `low` | 계약과 수정 위치가 정해진 Task. 검증을 건너뛸 수 있으니 지시서에 실행할 검증 명령을 적는다 |
+| `medium` | 시작점 |
+| `high` | 어려운 디버깅이나 깊은 계획. 같은 Task 가 `medium` 에서 실패했을 때 올린다 |
+| `xhigh`, `max` | 같은 Task 에서 `high` 보다 낫다는 결과가 있을 때만 |
+| `ultra` | worker 에 쓰지 않는다. 스스로 subagent 를 띄워 코디네이터가 모르는 작업자가 생긴다 |
 
-둘 사이에서 망설여지면 틀렸을 때 되돌리는 비용이 큰 쪽을 claude 로 보낸다.
+높을수록 좋아지지 않는다.
+- `gpt-6.1-sol` 의 DeepSWE 점수는 `high` 가 가장 높고 `xhigh`, `max` 에서 떨어진다
+- Claude Sonnet 5.5 는 `max` 에서 스스로 리뷰를 여러 번 돌리고 범위 밖 수정을 더해 `xhigh` 보다 점수가 낮았다
+- 2026-09-30 `gpt-6.1-sol` `high` 가 요청하지 않은 생성자 방식 변경과 저장소 관례와 다른 커밋 제목을 냈다(사용자 지적)
+- 출처: developers.openai.com/api/docs/guides/reasoning, platform.claude.com/docs/en/build-with-claude/effort
 
-codex 는 모델과 effort 도 Task 마다 고른다.
+### Codex 에 넘기는 방법
+
 `~/.codex/config.toml` 의 `model` 은 대화형 codex 의 기본값이라, 그대로 넘기면 모든 Task 가 같은 모델로 돈다.
-고를 수 있는 모델과 설명, effort 목록은 아래 명령으로 본다.
+`--model` 과 `--effort` 를 함께 넘긴다. effort 만 주면 거절된다.
+고를 수 있는 모델과 effort 목록은 아래 명령으로 본다.
 
 ```bash
 codex debug models | python3 -c "import json,sys; d=json.load(sys.stdin); [print(m['slug'], '|', m['description'], '|', ','.join(l['effort'] for l in m['supported_reasoning_levels'])) for m in d['models'] if m.get('visibility')=='list']"
@@ -55,8 +93,6 @@ codex debug models | python3 -c "import json,sys; d=json.load(sys.stdin); [print
 
 `~/.codex/models_cache.json` 은 읽지 않는다. 대화형 codex 를 띄울 때만 갱신돼 새 모델이 빠진다.
 2026-09-30 캐시에는 `gpt-6.1-sol` 이 없었고 `codex debug models` 에는 있었다.
-
-effort 를 주려면 `--model` 도 함께 넘긴다.
 
 ## 2. 지시서 쓰기
 
@@ -76,6 +112,11 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 
 여러 worker 를 동시에 두면 **지금 묶인 run 하나에** 띄운다. 묶인 run 은 `run-current` 로 본다.
 새 run 을 만들면 코디네이터가 그쪽으로 옮겨 묶이고, 이전 run 의 메시지를 받지 못한다.
+
+**`--base-branch` 에는 `origin/main` 을 준다.** `main` 을 주면 대상 저장소의 로컬 main 을 기준으로 워크트리를 만든다.
+로컬 main 이 뒤처져 있어도 오류 없이 만들어져, worker 가 옛 코드 위에서 계획하고 구현한다.
+2026-09-30 fos-assistant 워크트리가 origin/main 보다 125커밋 뒤에서 시작했고, worker 가 계획 도중에 알아챘다.
+띄우기 전에 `git -C <repo> fetch origin` 으로 원격을 갱신하고, main 이 깨끗하면 `git -C <repo> merge --ff-only origin/main` 으로 로컬 main 도 맞춘다.
 
 띄운 직후 두 가지를 확인한다.
 
