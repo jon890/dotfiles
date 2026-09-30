@@ -95,6 +95,9 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 
 - **`timeout` 과 `gtimeout` 이 없다.** 시간으로 끊어야 하면 그 도구 자신의
 타임아웃 옵션을 쓰고, 없으면 백그라운드로 돌린다.
+- **셸 변수 이름을 `path` 로 두지 않는다.** zsh 에서 `path` 는 `PATH` 와 묶인 배열이라,
+값을 넣는 순간 그 뒤의 모든 명령이 `command not found` 로 죽는다. `while read ... path` 도 해당한다.
+- **변수 뒤에 `:` 을 바로 붙이지 않는다.** `$b:src` 는 zsh 가 수정자로 읽는다. `${b}:src` 로 쓴다.
 
 ## 한국어 산출물 점검
 
