@@ -49,6 +49,16 @@ python3 -c "import json; [print(m['slug'], '|', m['description'], '|', ','.join(
 effort 를 지정하려면 모델 ID 도 함께 넘긴다.
 적용 여부는 `worker-start` 응답의 `launch.effective` 로 확인한다.
 
+**코디네이터 터미널은 run 하나에만 묶인다. 여러 worker 를 동시에 두면 한 run 에 띄운다.**
+worker 가 살아 있는 run A 를 두고 `run-create` 로 run B 를 만들었다(2026-09-30 실측).
+코디네이터가 B 에 묶이면서 A 의 `check` 와 `worker-start --run A` 가 `consumer_fenced` 로 거절됐다.
+A 에 걸어 둔 백그라운드 `check --wait` 는 A 의 완료 메시지를 받아 오지 못했다.
+
+새 worker 는 지금 묶인 run 에 띄운다. 어느 run 에 묶였는지는 `run-current` 로 확인한다.
+이미 run 이 둘로 나뉘었으면 `orca orchestration run-use --id <run_id>` 로 옮겨 붙은 뒤 메시지를 읽는다.
+`run-use` 는 `--run` 이 아니라 `--id` 를 받는다.
+worker 상태만 볼 때는 fenced 상태여도 `worker-list --run <run_id>` 가 동작한다.
+
 ## 지시를 보낼 때
 
 **긴 지시는 앞부분도 중간도 잘려 도착한다.**
