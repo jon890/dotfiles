@@ -8,9 +8,9 @@ Dooray 업무와 댓글, 사내 회신, 팀 공유가 대상이다.
 
 | 층   | 파일                                                               |
 | --- | ---------------------------------------------------------------- |
-| 언어  | `~/.claude/skills/korean-check/references/korean-style.md`         |
-| 구조  | `~/.claude/skills/korean-check/references/writing-structure.md`    |
-| 매체  | `~/.claude/skills/korean-check/references/markdown-readability.md` |
+| 언어  | `~/personal/fos-skills/korean-check/references/korean-style.md`         |
+| 구조  | `~/personal/fos-skills/korean-check/references/writing-structure.md`    |
+| 매체  | `~/personal/fos-skills/korean-check/references/markdown-readability.md` |
 | 개인  | 이 문서                                                             |
 
 
