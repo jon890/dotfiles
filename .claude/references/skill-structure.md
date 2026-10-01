@@ -3,7 +3,7 @@
 **목표: 스킬을 처음 여는 사람이 무엇을 하는 스킬인지, 어떤 순서로 도는지, 지금 어느 단계인지를 차례로 알게 한다.**
 
 어느 층을 고칠지는 [`skill-sync.md`](skill-sync.md) 가, 문장을 유지할지 지울지는
-`~/.claude/skills/harness-cleanup/references/judgment.md` 가 소유한다.
+`~/personal/fos-skills/harness-cleanup/references/judgment.md` 가 소유한다.
 이 문서는 **남기기로 한 것을 어디에 어떤 순서로 두는지**만 소유한다.
 
 ## 문서 구성
@@ -79,7 +79,7 @@ gh release create <태그> --title "<태그>" --notes-file <본문파일>  # 이
 ```
 
 값을 변수로 두고 블록 앞에서 무엇을 채우는지 한 줄로 적는다.
-`~/.claude/skills/harness-cleanup/scripts/run_doc_snippets.py` 가 이것을 실제로 돌려 확인한다.
+`~/personal/fos-skills/harness-cleanup/scripts/run_doc_snippets.py` 가 이것을 실제로 돌려 확인한다.
 
 ## references 로 내리는 기준
 
@@ -108,8 +108,8 @@ gh release create <태그> --title "<태그>" --notes-file <본문파일>  # 이
 `harness-cleanup` 으로 감사한다. 그 스킬의 「스킬 구조와 유지보수성」 축이 이 문서를 기준으로 판정한다.
 
 ```bash
-python3 ~/.claude/skills/harness-cleanup/scripts/collect_targets.py "$REPO" --scope "$SCOPE"
-python3 ~/.claude/skills/harness-cleanup/scripts/run_doc_snippets.py "$SKILL_MD"
+python3 ~/personal/fos-skills/harness-cleanup/scripts/collect_targets.py "$REPO" --scope "$SCOPE"
+python3 ~/personal/fos-skills/harness-cleanup/scripts/run_doc_snippets.py "$SKILL_MD"
 ```
 
 `$SCOPE` 는 저장소 루트 밑의 스킬 디렉터리다.
