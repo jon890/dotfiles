@@ -54,7 +54,7 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 
 ## 브라우저
 
-브라우저 작업은 `~/.claude/scripts/browser-driver` 를 쓴다.
+브라우저 작업은 `browser-driver` 를 쓴다.
 명령 목록은 `browser-driver help` 가, 백엔드 설정과 백엔드별 함정은 그 드라이버의 README 가 소유한다.
 
 ## 셸
@@ -95,7 +95,7 @@ Dooray 업무를 생성하거나 수정할 때, 댓글을 달 때, 사내 회신
 
 ## 개인 지식과 사내 지식
 
-- 회사 규칙과 Dooray 업무·위키는 `nhn-develop:nbrain` 스킬로 조회한다.
+- 회사 규칙과 Dooray 업무·위키는 `nbrain` 스킬로 조회한다.
 - 비공개 지식을 공개 맥락에 노출하지 않는다.
 - 개인 지식 기반을 추가하거나 변경할 때에는 사용자의 승인을 받는다.
 

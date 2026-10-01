@@ -10,7 +10,7 @@
 | 저장소 로컬 | `<repo>/.claude/skills/` | 그 저장소에서만 뜻이 통하는 스킬 | 저장소를 열면 실린다 |
 | 개인 로컬 | `~/.claude/skills/<이름>` 실체 | 아직 쓰임이 굳지 않아 저장소에 올리지 않은 스킬 | 디렉터리 그대로 |
 | 개인 공용 | `~/personal/fos-skills/` | 회사와 개인 작업에서 함께 쓰는 스킬 | 플러그인 `fos-skills` |
-| 팀 공용 | `~/projects/AiSdtSkill/` | 사내 업무용이고 팀원도 쓰는 스킬 | 플러그인 `ai-sdt`, `nhn-develop` |
+| 팀 공용 | 팀 저장소 체크아웃 | 사내 업무용이고 팀원도 쓰는 스킬 | 팀 저장소의 플러그인 |
 
 **플러그인 스킬은 체크아웃이 아니라 설치 캐시의 복사본이 실행된다.**
 캐시는 `~/.claude/plugins/cache/<마켓플레이스>/<플러그인>/<버전>/` 에 있고, 스킬 이름에 `fos-skills:planning` 처럼 접두사가 붙는다.
@@ -23,19 +23,12 @@ claude plugin list
 cd ~/.claude/skills && for n in *; do printf '%-24s %s\n' "$n" "$(readlink "$n" || echo '(실체)')"; done
 ```
 
-`~/.claude/skills/` 에서 개인 공용과 팀 공용을 가리키는 링크는 둘만 남겼다.
-
-| 링크 | 남긴 이유 |
-| --- | --- |
-| `content-preview` | 팀 저장소의 `grm-registration` 이 `~/.claude/skills/content-preview/scripts/show-preview.sh` 를 실행한다. 그 줄을 고치면 지운다 |
-| `grm-registration` | 아직 어느 플러그인에도 없다. 팀 저장소의 `skills/` 를 가리킨다 |
-
-남긴 링크의 스킬은 접두사 있는 것과 없는 것 둘로 뜬다.
+`~/.claude/skills/` 에는 개인 공용과 팀 공용을 가리키는 링크를 두지 않는다. 두면 접두사 있는 것과 없는 것 둘로 뜬다.
 `~/.claude/scripts/` 와 `~/.claude/rules/` 의 링크는 스킬 링크가 아니다. 체크아웃 안의 검사기와 규칙 파일을 가리키므로 그대로 둔다.
 
 ## 개인 공용과 팀 공용의 관계
 
-**`fos-skills` 가 원본이고 `AiSdtSkill` 의 것은 사본이다.**
+**`fos-skills` 가 원본이고 팀 저장소의 것은 사본이다.**
 팀원이 저장소를 둘 받지 않아도 되게 사본을 두고, 어긋남은 스크립트가 잡는다.
 
 내보내는 스킬과 공용 도구는 다음 명령으로 확인한다.
@@ -48,14 +41,18 @@ grep -n '^SHARED_' ~/personal/fos-skills/scripts/export-to-team.sh
 
 | 원본 | 팀 저장소의 사본 | 팀 저장소에서 싣는 곳 |
 | --- | --- | --- |
-| `content-preview`, `korean-check` | `plugins/ai-sdt/skills/<이름>/` | 플러그인 `ai-sdt` |
+| `content-preview`, `korean-check` | `plugins/<플러그인>/skills/<이름>/` | 팀 저장소의 플러그인. 개인 공용 플러그인은 이 둘을 싣지 않는다 |
 | `planning`, `build-with-teams`, `docs-check`, `review-fix` | `skills/<이름>/` | 기존 링크 설치. 플러그인에 없다 |
-| `tools/browser-driver` | `tools/browser-driver/` | 플러그인 `nhn-develop` 이 링크로 싣는다 |
+| `tools/browser-driver` | `tools/browser-driver/` | 팀 저장소의 플러그인이 링크로 싣는다 |
 
 내보내기 스크립트는 `skills/<이름>` 으로 쓴다.
-`ai-sdt` 가 담는 스킬은 그 자리가 본체를 가리키는 링크라, 스크립트가 링크 너머의 본체에 쓰고 링크는 그대로 남는다 (2026-10-01 실측).
+플러그인이 담는 스킬은 그 자리가 본체를 가리키는 링크라, 스크립트가 링크 너머의 본체에 쓰고 링크는 그대로 남는다 (2026-10-01 실측).
 
 `harness-cleanup` 은 개인 스킬이라 내보내지 않는다.
+
+**`content-preview` 와 `korean-check` 는 원본만 개인 공용에 있고, 스킬로는 팀 저장소의 플러그인 것이 뜬다.**
+개인 공용 플러그인의 `skills` 배열에서 빼고 `scripts/export-only-skills.json` 에 적어 두었다.
+원본을 고치면 내보내고 팀 저장소의 플러그인을 갱신해야 실행되는 내용이 바뀐다.
 
 ```bash
 cd ~/personal/fos-skills
@@ -75,9 +72,7 @@ cd ~/personal/fos-skills
 
 | 스킬 | 소유 | 본체 |
 | --- | --- | --- |
-| `weekly-report`, `create-pr`, `dooray-task`, `branch-to-task` | 팀 저장소 | `plugins/ai-sdt/skills/<이름>/` |
-| `apms`, `nssh`, `nbrain`, `doctor` | 팀 저장소 | `plugins/nhn-develop/skills/<이름>/` |
-| `grm-registration` | 팀 저장소 | `skills/grm-registration/` |
+| 팀 양식과 사내 시스템 스킬 | 팀 저장소 | `plugins/<플러그인>/skills/<이름>/`. 목록은 `claude plugin list` 와 팀 저장소 문서로 본다 |
 | `harness-cleanup` | 개인 공용 | `~/personal/fos-skills/harness-cleanup/` |
 | `pr-review`, `presentation`, `meeting-note` | 개인 로컬 | `~/.claude/skills/<이름>/` |
 
@@ -91,11 +86,11 @@ cd ~/personal/fos-skills
    | 저장소 | 올리는 것 | 기준이 있는 곳 |
    | --- | --- | --- |
    | `fos-skills` | 스킬의 `metadata.version`. 플러그인 버전은 없고 커밋 SHA 가 버전이다 | `fos-skills/README.md` 의 「버전과 변경 이력」 |
-   | `AiSdtSkill` | 스킬의 `version` 과, 닿은 플러그인의 `plugin.json` `version` | 팀 저장소 `CLAUDE.md` 의 「버전 규칙」 과 「플러그인」 |
+   | 팀 저장소 | 스킬의 `version` 과, 닿은 플러그인의 `plugin.json` `version` | 팀 저장소 `CLAUDE.md` 의 「버전 규칙」 과 「플러그인」 |
 
 3. 변경 이력을 적는다. 팀 저장소는 대상마다 파일이 다르다. 어느 파일인지는 팀 저장소 `CLAUDE.md` 의 「CHANGELOG 작성 규칙」 이 소유한다.
 4. 내보내는 스킬이면 내보내고, 두 저장소에서 각각 커밋한다.
-   사본이 `plugins/ai-sdt/` 나 `tools/browser-driver/` 에 닿으면 그 플러그인의 버전도 올린다. CI 가 올리지 않은 변경을 막는다.
+   사본이 `plugins/` 나 `tools/browser-driver/` 에 닿으면 그 플러그인의 버전도 올린다. CI 가 올리지 않은 변경을 막는다.
 
 ## 고친 뒤 이 머신에 반영하기
 
@@ -105,10 +100,9 @@ cd ~/personal/fos-skills
 # fos-skills: main 에 머지하고 push 한 뒤
 claude plugin update fos-skills@fos-skills
 
-# AiSdtSkill: main 에 머지된 뒤
-claude plugin marketplace update ai-sdt-skills
-claude plugin update ai-sdt@ai-sdt-skills
-claude plugin update nhn-develop@ai-sdt-skills
+# 팀 저장소: main 에 머지된 뒤. 이름은 claude plugin list 로 본다
+claude plugin marketplace update <팀 마켓플레이스>
+claude plugin update <플러그인>@<팀 마켓플레이스>
 ```
 
 갱신한 내용은 `/reload-plugins` 나 새 세션에서 적용된다.
