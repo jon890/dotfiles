@@ -40,46 +40,55 @@
 
 ### 모델
 
-Task 를 셋 중 하나로 나누고 그 줄의 후보 가운데 가장 싼 것부터 검토한다.
+계획서의 구체성과 필요한 탐색에 따라 고른다.
+인증과 권한 작업도 계획서에 수정 위치와 검증 명령이 있으면 첫 행을 따른다.
 
-| Task 성격 | 예 | 후보 |
+| Task 성격 | 모델 | effort |
 | --- | --- | --- |
-| 수정 위치와 계약이 지시서에 정해졌다 | 리뷰 지적 반영, 정해진 필드와 문구 변경, 설정 한 줄 | `gpt-6-luna`, `gpt-6.1-sol` |
-| 저장소를 탐색하며 구현하고 판단은 `ask` 로 올린다 | 계획서가 있는 기능 구현, 여러 파일 수정 | `gpt-6.1-sol`, Claude Sonnet 5.5 |
-| 틀렸을 때 되돌리는 비용이 크다 | 인증과 권한 경계, 데이터 마이그레이션, 여러 저장소의 계약 설계 | Claude Opus 5.5, `gpt-6.1-sol` 의 `high` |
+| 계획서가 있고 수정 위치와 검증 명령이 정해진 구현 | `gpt-6.1-sol`, Claude Sonnet 5.5 | sol `low`, Sonnet `medium` |
+| 단순 반영(리뷰 지적, 문구, 설정 한 줄) | `gpt-6-luna` | `high`(공식 시작점) |
+| 계획은 있지만 저장소를 탐색해야 하는 여러 파일 구현 | `gpt-6.1-sol`, Claude Sonnet 5.5 | `medium`, 같은 Task 가 실패하면 `high` |
+| 어려운 디버깅, 계약 설계, 데이터 마이그레이션 | Claude Opus 5.5, `gpt-6.1-sol` | Opus `medium` 시작, sol `high` |
+| 리뷰와 검증 | 구현한 쪽과 다른 제공자의 모델 | `medium` |
 
-비교 근거다(2026-09-30 공식 자료. 값이 바뀌면 아래 출처에서 다시 확인한다).
+비교 근거다(2026-10-01 공식 자료 조사. 값이 바뀌면 아래 출처에서 다시 확인한다).
 
-| 모델 | 입력 / 출력 ($/1M 토큰) | 코딩 지표 |
-| --- | --- | --- |
-| `gpt-6-luna` | 0.10 / 0.50 | DeepSWE 1.1: high 59.3, max 66.6 |
-| `gpt-6.1-sol` | 2 / 10 | DeepSWE 1.1: medium 73.0, high 75.2 |
-| `gpt-6-astra` | 10 / 50 | DeepSWE 1.1: xhigh 74.1 |
-| Claude Sonnet 5.5 | 2 / 10 | FrontierCode 1.1: xhigh 52.1%, Terminal-Bench 4.0: 70.6% |
-| Claude Opus 5.5 | 4 / 20 | FrontierCode 1.1: max 54.4%, Terminal-Bench 4.0: xhigh 66.4% |
+| 모델 | 공식 권장 용도 | 공식 effort 시작점 | 입력 / 출력 ($/1M 토큰) | 상대 속도 |
+| --- | --- | --- | --- | --- |
+| `gpt-6.1-sol` | 복잡한 리팩터링, 코드베이스 조사, 장기 에이전트 | `medium`(기본) | 2 / 10 | Fast 2배(사용량 증가) |
+| `gpt-6-luna` | 집중된 대량 작업, focused coding | `high` | 0.10 / 0.50 | Fast 1.5배 |
+| `gpt-6-astra` | 가장 강한 능력이 필요할 때 | 확인 못 함 | 10 / 50 | Fast 2배 |
+| Claude Sonnet 5.5 | 일상 코딩과 에이전트 | 잘 정의된 Task 는 `medium`, 어렵거나 긴 Task 는 `high`(기본) | 2 / 10 | Fast |
+| Claude Opus 5.5 | 장시간 에이전트 코딩, 대규모 리팩터링 | `medium`(기본) | 4 / 20 | Moderate |
+| Claude Fable 5.1 | Opus 5.5 의 `xhigh`, `max` 로도 부족한 추론 | `high` | 10 / 50 | Slower |
+| Claude Haiku 4.5 | 실시간, 대량 처리, 서브에이전트 | 미지원 | 1 / 5 | Fastest |
 
-- `gpt-6-astra` 와 Claude Fable 5.1 은 `gpt-6.1-sol` 의 5배 값인데 코딩 지표가 앞서지 않는다. 다른 후보가 같은 Task 에서 실패했을 때만 검토한다
-- Codex 구독의 차감률은 API 가격과 비율이 같다. `gpt-6-astra` 1회는 `gpt-6.1-sol` 5회, `gpt-6-luna` 100회에 해당한다
-- 두 제공자가 같은 지표를 거의 발표하지 않아 제공자 사이의 점수는 직접 비교하지 않는다
-- 출처: developers.openai.com/api/docs/pricing, learn.chatgpt.com/docs/pricing, platform.claude.com/docs/en/about-claude/pricing, 각 모델 발표 페이지
+- `gpt-6-astra` 와 Claude Fable 5.1 은 다른 후보가 같은 Task 에서 실패했을 때만 검토한다
+- 확인하지 못한 effort 별 코딩 점수는 선택 근거에서 뺐다. 제공자 사이의 점수도 직접 비교하지 않는다
+- 공식 effort 별 지연과 비용 배수는 양쪽 모두 확인 못 함
+- 출처: [sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [astra](https://developers.openai.com/api/docs/models/gpt-6-astra), [Codex 모델](https://learn.chatgpt.com/docs/models)
+- 출처: [Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort), [Claude 가격](https://platform.claude.com/docs/en/about-claude/pricing), [Claude 모델 선택](https://platform.claude.com/docs/en/about-claude/models/choosing-a-model)
 
 ### effort
 
-**`medium` 에서 시작한다.** 두 제공자 모두 에이전트 코딩의 시작점으로 권한다. `gpt-6-luna` 만 Codex 권장 시작점이 `high` 다.
+**모델마다 공식 시작점이 다르다. 계획서가 있으면 위 표의 낮은 쪽에서 시작한다.**
 
 | 단계 | 올리거나 내리는 조건 |
 | --- | --- |
-| `low` | 계약과 수정 위치가 정해진 Task. 검증을 건너뛸 수 있으니 지시서에 실행할 검증 명령을 적는다 |
-| `medium` | 시작점 |
+| `low` | 계획서에 수정 위치와 검증 명령이 정해진 sol 구현. Claude 에서는 속도와 가격이 중요한 단순 Task 와 서브에이전트 |
+| `medium` | 지연, 성능, 비용의 균형점. 모델과 Task 에 따라 위 선택 표를 따른다 |
 | `high` | 어려운 디버깅이나 깊은 계획. 같은 Task 가 `medium` 에서 실패했을 때 올린다 |
-| `xhigh`, `max` | 같은 Task 에서 `high` 보다 낫다는 결과가 있을 때만 |
+| `xhigh`, `max` | 기본으로 쓰지 않는다. 같은 Task 에서 `high` 보다 낫다는 결과가 있을 때만 |
 | `ultra` | worker 에 쓰지 않는다. 스스로 subagent 를 띄워 코디네이터가 모르는 작업자가 생긴다 |
 
-높을수록 좋아지지 않는다.
-- `gpt-6.1-sol` 의 DeepSWE 점수는 `high` 가 가장 높고 `xhigh`, `max` 에서 떨어진다
-- Claude Sonnet 5.5 는 `max` 에서 스스로 리뷰를 여러 번 돌리고 범위 밖 수정을 더해 `xhigh` 보다 점수가 낮았다
+높은 effort 는 추가 작업과 비용을 늘릴 수 있다.
+
+- Claude 의 `low` 는 검증을 건너뛸 수 있다. 지시서에 검증 명령을 적으면 거의 사라진다
+- Claude 의 `low`, `medium` 은 긴 작업에서 중간에 확인을 구할 수 있다. 지시서에 「끝까지 진행한다」 를 넣는다
+- Claude 의 `xhigh`, `max` 는 스스로 리뷰 라운드를 돌리고 reviewer subagent 를 띄워 비용이 커진다
 - 2026-09-30 `gpt-6.1-sol` `high` 가 요청하지 않은 생성자 방식 변경과 저장소 관례와 다른 커밋 제목을 냈다(사용자 지적)
-- 출처: developers.openai.com/api/docs/guides/reasoning, platform.claude.com/docs/en/build-with-claude/effort
+- 2026-10-01 fos-accountbook 에서 계획서가 있는 plan 셋을 sol `medium` 으로 돌렸고, 사용자가 계획이 충분하면 낮은 effort 로 빠르게 가라고 했다
+- 출처: [OpenAI reasoning](https://developers.openai.com/api/docs/guides/reasoning), [Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort)
 
 ### Codex 에 넘기는 방법
 
@@ -93,6 +102,8 @@ codex debug models | python3 -c "import json,sys; d=json.load(sys.stdin); [print
 
 `~/.codex/models_cache.json` 은 읽지 않는다. 대화형 codex 를 띄울 때만 갱신돼 새 모델이 빠진다.
 2026-09-30 캐시에는 `gpt-6.1-sol` 이 없었고 `codex debug models` 에는 있었다.
+2026-10-01 `codex debug models` 실측에서 기본 service tier 는 `priority`(Fast)였다.
+Fast 는 사용량이 늘어난다. 실제 적용 값은 `worker-start` 응답의 `launch.effective` 로 확인한다.
 
 ## 2. 지시서 쓰기
 
@@ -103,6 +114,7 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 지시서에 넣을 것이다.
 
 - 담당 범위, 기대하는 이득, 선행 결과, 결정하지 못한 사항
+- effort 가 `low` 나 `medium` 이면 「끝까지 진행하고 판단만 ask 로 묻는다. 검증 명령을 실행한다」 를 넣는다. 낮은 effort 는 중간에 멈추거나 검증을 건너뛸 수 있다
 - Ownership 에 「구현이 docs 계약과 달라지면 같은 커밋에서 그 절을 고친다. 고치기 전에 ask 로 알린다」.
   docs 를 범위에서 빼면 구현 중 계약이 바뀔 때마다 worker 가 docs-verifier 판정에 걸려 `ask` 로 멈춘다(2026-09-30 fos-agents plan136)
 - 승인이 필요한 작업이면 「발견 목록을 먼저 내고 멈춘다」.
