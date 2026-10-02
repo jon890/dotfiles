@@ -135,7 +135,7 @@ NED와 F1 같은 평가지표 이름을 성과처럼 나열하지 않는다.
 표기 검사기와 가독성 검사기를 함께 돌려, 통과하면 0, 위반을 찾으면 1, 실행하지 못하면 2로 끝난다.
 
 ```bash
-~/.claude/skills/korean-check/scripts/check.sh "$FILE"
+/Users/nhn/personal/fos-skills/korean-check/scripts/check.sh "$FILE"
 ```
 
 한국어는 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
