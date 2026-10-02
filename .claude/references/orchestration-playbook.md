@@ -146,9 +146,25 @@ Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지
 앞에서 돌리면 그동안 코디네이터가 막힌다.
 둘째 대기는 `waiter_exists` 로 바로 끝나고 거기 붙인 `--ack` 만 처리된다.
 
+대기 출력에는 15초마다 `{"_keepalive":true,...}` 줄이 섞여 그대로는 JSON 으로 읽히지 않는다.
+대기를 걸 때 그 줄을 빼고 받는다.
+
+```bash
+orca orchestration check --run <run_id> --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json | grep -v _keepalive
+```
+
+대기는 `--timeout-ms` 가 지나면 메시지 없이 `timedOut: true` 로 끝난다. 실패가 아니므로 다시 건다.
+
 `You have N orchestration message` 알림은 대개 heartbeat 다.
 `check` 로 읽고 `--ack` 만 하고, 살아 있는 대기는 그대로 둔다.
 heartbeat 는 worker 가 멈춰 있어도 오므로, 진행은 커밋과 화면으로 판단한다.
+
+heartbeat 의 `payload.phase` 는 worker 가 스스로 적는 값이다.
+`waiting` 은 worker 가 백그라운드로 돌린 검사가 끝나기를 기다린다는 뜻으로도 쓰인다.
+이때 worker 의 턴은 끝나 화면이 입력 대기로 보이고 커밋도 늘지 않아 멈춘 것과 구분되지 않는다.
+`worker-read --dispatch <id>` 의 마지막 메시지와, 검사 프로세스가 살아 있는지로 판단한다.
+2026-10-01 fos-assistant worker 가 `scripts/check-local.sh` 의 브라우저 단계를 기다리며 `waiting` 을 보냈고,
+`ps` 에 Playwright 가 돌고 있어 정상으로 판정했다.
 
 기다리는 동안 worker 의 워크트리에서 파일을 고치지 않는다.
 worker 가 `git add -A` 를 하면 내 변경이 그쪽 커밋에 섞인다. 문서를 쓰려면 별도 워크트리를 만든다.

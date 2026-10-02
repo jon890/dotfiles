@@ -68,7 +68,7 @@
 위임한 결과를 머지하거나 PR을 만들 때는 사용자의 확인을 받는다.
 `fos-home-infra`만 예외로, 홈서버에서 실제로 돌려 검증했으면 확인 없이 머지해도 된다.
 
-**worker를 띄우기 전에 `~/.claude/references/orchestration-traps.md`를 읽는다.**
+**worker를 띄우기 전에 `~/.claude/references/orchestration-playbook.md`를 읽는다.**
 오류 없이 잘못된 결과가 완료로 보고되는 자리와 기다리는 방법이 거기 있다.
 
 위임과 새 worktree가 필요한 경우에는 다음 규칙을 따른다.
