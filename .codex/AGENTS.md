@@ -68,7 +68,7 @@
 위임한 결과를 머지하거나 PR을 만들 때는 사용자의 확인을 받는다.
 `fos-home-infra`만 예외로, 홈서버에서 실제로 돌려 검증했으면 확인 없이 머지해도 된다.
 
-**worker를 띄우기 전에 `~/.claude/references/orchestration-traps.md`를 읽는다.**
+**worker를 띄우기 전에 `~/.claude/references/orchestration-playbook.md`를 읽는다.**
 오류 없이 잘못된 결과가 완료로 보고되는 자리와 기다리는 방법이 거기 있다.
 
 위임과 새 worktree가 필요한 경우에는 다음 규칙을 따른다.
@@ -135,7 +135,7 @@ NED와 F1 같은 평가지표 이름을 성과처럼 나열하지 않는다.
 표기 검사기와 가독성 검사기를 함께 돌려, 통과하면 0, 위반을 찾으면 1, 실행하지 못하면 2로 끝난다.
 
 ```bash
-~/.claude/skills/korean-check/scripts/check.sh "$FILE"
+/Users/nhn/personal/fos-skills/korean-check/scripts/check.sh "$FILE"
 ```
 
 한국어는 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
