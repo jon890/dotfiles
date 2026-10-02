@@ -119,6 +119,12 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
   docs 를 범위에서 빼면 구현 중 계약이 바뀔 때마다 worker 가 docs-verifier 판정에 걸려 `ask` 로 멈춘다(2026-09-30 fos-agents plan136)
 - 승인이 필요한 작업이면 「발견 목록을 먼저 내고 멈춘다」.
   그 회신이 `worker_done` 으로 바로 오면 절차 위반으로 본다
+- PR 을 열게 하면 「PR 생성은 승인돼 있다」 를 적는다.
+  codex worker 의 기본 지침은 GitHub 게시를 막아, 지시서에 「PR 을 연다」 만 있으면 승인을 다시 묻는다.
+  2026-10 fos-agents worker 가 그랬고, 문구를 명시한 뒤에는 묻지 않았다
+- 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」.
+  하위 에이전트가 `worker_done` 을 보내면 dispatch 가 닫히고, 이어지는 worker 의 보고가 `capability is revoked` 로 거절돼 worker 가 멈춘다.
+  2026-10 fe-plan9 에서 하위 검토자가 `worker_done` 을 보냈고, 이 줄을 지시서에 넣은 뒤 재발하지 않았다
 
 ## 3. 띄우기
 
@@ -154,6 +160,17 @@ orca orchestration check --run <run_id> --wait --types "worker_done,escalation,q
 ```
 
 대기는 `--timeout-ms` 가 지나면 메시지 없이 `timedOut: true` 로 끝난다. 실패가 아니므로 다시 건다.
+
+백그라운드 대기가 종료 코드 144 로 끝난 것처럼 보여도 Orca CLI 프로세스가 살아 있을 수 있다.
+그 프로세스가 대기 자리를 쥐고 있으면 새로 건 대기가 `waiter_exists` 로 바로 끝난다.
+찾아서 종료한 뒤 다시 건다. 이 세션이 건 프로세스이므로 다른 run 의 것과 구분해서 종료한다.
+
+```bash
+ps -eo pid,command | grep "orchestration check --wait" | grep -v grep
+```
+
+Orca runtime 이 잠시 끊기면 `runtime_unavailable` 로 끝나기도 한다. `orca status` 로 살아 있는지 확인한 뒤 다시 건다.
+2026-10 fos-accountbook 에서 둘 다 겪었다.
 
 `You have N orchestration message` 알림은 대개 heartbeat 다.
 `check` 로 읽고 `--ack` 만 하고, 살아 있는 대기는 그대로 둔다.
@@ -192,6 +209,13 @@ worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」�
 - 작업이 끝난 워크트리를 제거한다
 - base 에 머지된 로컬 브랜치를 지운다
 
+**브랜치와 워크트리는 `gh pr view --json state` 가 `MERGED` 일 때만 지운다.**
+`gh pr merge` 가 미해결 리뷰 스레드 때문에 거절됐는데 결과를 보지 않고 브랜치를 지워 PR 이 닫힌 적이 있다(2026-10 fos-accountbook).
+
+```bash
+gh pr view "$PR" --json state --jq .state
+```
+
 남기는 것이다.
 
 - PR 이 열려 있는 워크트리. 리뷰 반영에 필요하고, 머지된 뒤에 지운다
@@ -204,6 +228,8 @@ worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」�
 | 증상 | 원인 | 대응 |
 | --- | --- | --- |
 | `worker-start` 가 `agent_readiness` 에서 실패 | 에이전트가 첫 화면의 확인에 멈췄다 | [첫 화면에서 멈춤](#첫-화면에서-멈춤) |
+| `gpt-6-luna` worker 가 출력 없이 `agent_readiness`, `failed` 로 끝남 | 이 모델 조합으로는 에이전트가 준비되지 않았다 | [luna 실행 실패](#luna-실행-실패) |
+| worker 가 멈추고 보고가 `capability is revoked` 로 거절됨 | 하위 에이전트가 `worker_done` 을 보내 dispatch 가 닫혔다 | [하위 에이전트가 dispatch 를 닫음](#하위-에이전트가-dispatch-를-닫음) |
 | codex 가 떠 있는데 `agent_readiness` 실패 | 터미널 제목에 `Codex` 와 `ready` 가 함께 없다 | [codex 준비 판정](#codex-준비-판정) |
 | `check` 나 `worker-start --run` 이 `consumer_fenced` | 코디네이터가 다른 run 에 묶였다 | [run 이 둘로 나뉨](#run-이-둘로-나뉨) |
 | 세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` | 이전 세션의 대기 프로세스가 대기 자리를 쥐고 있다 | [이전 세션의 대기](#이전-세션의-대기) |
@@ -222,6 +248,31 @@ worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」�
 2. `terminal wait --for tui-idle` 로 입력 대기 상태를 확인한다
 3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
    `--model` 은 줄 수 없지만 처음 띄울 때 준 모델이 그 터미널에 남아 있다
+
+### luna 실행 실패
+
+2026-10 `--model gpt-6-luna --effort high` worker 가 `stage.detail: agent_readiness`, `outcome: failed` 로 아무 출력 없이 끝났다.
+같은 Task 를 다른 모델로 다시 띄운다. `--retry-of` 는 `--spec` 이 아니라 `--task` 와 함께 쓴다.
+
+```bash
+orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --agent codex --model gpt-6.1-sol --effort low --worktree "path:$WORKTREE"
+```
+
+`$WORKTREE` 는 처음 띄운 워크트리 경로다. 이 방법으로 같은 Task 를 끝냈다.
+
+### 하위 에이전트가 dispatch 를 닫음
+
+worker 가 띄운 하위 에이전트가 `worker_done` 을 보내면 dispatch 가 닫힌다.
+이후 worker 의 보고는 `capability is revoked` 로 거절되고 worker 는 멈춘다(2026-10 fe-plan9).
+예방은 2단계 지시서의 「하위 에이전트는 orca 명령을 쓰지 않는다」 줄이다.
+
+닫힌 뒤에는 같은 터미널에 남은 일을 새 dispatch 로 준다.
+
+```bash
+orca orchestration worker-start --spec "$SPEC" --terminal "$TERMINAL_HANDLE" --worktree "path:$WORKTREE"
+```
+
+`$SPEC` 은 남은 일만 적은 지시서 파일이다.
 
 ### codex 준비 판정
 
