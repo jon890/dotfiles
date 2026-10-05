@@ -17,7 +17,16 @@
 저장소마다 변경이 독립된 검토 단위로 남아야 한다.
 한 세션이 여러 저장소의 브랜치를 쥐면 어느 변경이 어디에 얹혔는지 추적하기 어렵다.
 
-위임한 결과를 머지하거나 PR 을 만들 때는 사용자의 확인을 받는다.
+**일을 여러 worker 로 나누면 worker 는 모두 코디네이터가 띄운다.** worker 는 다시 worker 를 띄우지 못한다.
+worker 가 띄우면 `nested_worker_depth_exceeded` 로 거절되고, 새 run 을 만들어도 깊이는 초기화되지 않는다.
+2026-10-05 fos-assistant 이슈 worker 가 소계획 여섯 개를 codex worker 로 맡기려다 depth 2, max 1 로 거절됐다.
+일을 나눠야 하면 worker 에게는 계획서 작성과 검토, worktree 준비까지만 맡긴다.
+worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절대경로>` 를 status 메시지로 보내고, 코디네이터가 그 worktree 에 띄운다.
+
+**PR 생성은 사용자가 미리 허락한 경우에만 worker 에게 맡긴다.**
+허락받았으면 2단계 지시서에 「PR 생성은 승인돼 있다」 를 적는다. 허락받지 않았으면 worker 는 브랜치 push 까지만 하고, 코디네이터가 사용자에게 확인받은 뒤 PR 을 연다.
+머지는 worker 에게 맡기지 않는다. 사용자가 머지까지 맡겼으면 코디네이터가 6단계 검증 뒤 7단계의 상태 확인을 거쳐 머지한다.
+맡기지 않았으면 6단계 검증 뒤 사용자에게 확인받고 같은 상태 확인을 거쳐 머지한다.
 
 ## 단계
 
@@ -25,13 +34,14 @@
 | --- | --- | --- |
 | 1 | 에이전트 고르기 | 에이전트, 모델, effort 와 고른 이유가 dispatch 보고에 한 줄로 있다 |
 | 2 | 지시서 쓰기 | 지시 본문이 파일에 있고 `--spec` 에는 그 경로만 있다 |
-| 3 | 띄우기 | `launch.effective` 가 고른 값과 같고, 대상 저장소 `git status` 에 `worktrees/` 가 없다 |
-| 4 | 기다리기 | 이 세션의 백그라운드 `check --wait` 가 하나만 돈다 |
-| 5 | 질문에 답하기 | 보낸 답이 검사를 무력화하지 않는다 |
-| 6 | 완료 검증 | diff 를 직접 읽었고 검사를 다시 돌려 통과했다 |
-| 7 | 정리 | 끝난 dispatch 와 워크트리, 머지된 로컬 브랜치가 없다 |
+| 3 | 띄우기 | `worker-start` 가 종료 코드 0 으로 끝났고, `launch.effective` 가 고른 값과 같고, 대상 저장소 `git status` 에 `worktrees/` 가 없다 |
+| 4 | 기다리기 | 이 세션의 백그라운드 `check --wait` 가 하나만 돌고, 앞 대기가 돌려준 `deliveryId` 를 `--ack` 로 넘겼다 |
+| 5 | 답하고 지시 보내기 | 답과 지시를 worker 의 마지막 메시지에 `reply` 로 보냈고, 그 답이 검사를 무력화하지 않는다 |
+| 6 | 완료 검증 | diff 를 직접 읽었고 검사를 다시 돌려 통과했다. 앞 PR 이 머지된 뒤라면 최신 base 와 합친 사본에서 통과했다 |
+| 7 | 정리 | 머지와 삭제 직전에 `gh pr view --json state` 를 봤고, 끝난 dispatch 와 워크트리, 머지된 로컬 브랜치가 없다 |
 
-응답이 예상과 다르면 [자주 나는 오류](#자주-나는-오류)에서 증상으로 찾는다.
+각 단계에서 생기는 오류와 대응은 그 단계 절에 있다.
+어느 단계에서 생겼는지 모르는 증상만 [자주 나는 오류](#자주-나는-오류)에서 찾는다.
 
 ## 1. 에이전트 고르기
 
@@ -63,6 +73,7 @@
 | Claude Fable 5.1 | Opus 5.5 의 `xhigh`, `max` 로도 부족한 추론 | `high` | 10 / 50 | Slower |
 | Claude Haiku 4.5 | 실시간, 대량 처리, 서브에이전트 | 미지원 | 1 / 5 | Fastest |
 
+- `gpt-6-luna` 는 2026-10 worker 시작에 실패한 적이 있다. 실패하면 3단계의 [luna 실행 실패](#luna-실행-실패) 대로 다른 모델로 다시 띄운다
 - `gpt-6-astra` 와 Claude Fable 5.1 은 다른 후보가 같은 Task 에서 실패했을 때만 검토한다
 - 확인하지 못한 effort 별 코딩 점수는 선택 근거에서 뺐다. 제공자 사이의 점수도 직접 비교하지 않는다
 - 공식 effort 별 지연과 비용 배수는 양쪽 모두 확인 못 함
@@ -122,9 +133,14 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 - PR 을 열게 하면 「PR 생성은 승인돼 있다」 를 적는다.
   codex worker 의 기본 지침은 GitHub 게시를 막아, 지시서에 「PR 을 연다」 만 있으면 승인을 다시 묻는다.
   2026-10 fos-agents worker 가 그랬고, 문구를 명시한 뒤에는 묻지 않았다
-- 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」.
-  하위 에이전트가 `worker_done` 을 보내면 dispatch 가 닫히고, 이어지는 worker 의 보고가 `capability is revoked` 로 거절돼 worker 가 멈춘다.
-  2026-10 fe-plan9 에서 하위 검토자가 `worker_done` 을 보냈고, 이 줄을 지시서에 넣은 뒤 재발하지 않았다
+- PR 을 열게 하면 「PR 은 기준 브랜치를 base 로 따로 연다. 다른 PR 브랜치를 base 로 두지 않는다」 도 적는다.
+  앞 PR 브랜치를 base 로 연 PR 은 앞 PR 을 `--delete-branch` 로 머지하면 자동으로 닫히거나 앞 브랜치로 머지된다.
+  2026-10 fos-agents #158, #160 이 닫히고 #159 가 앞 브랜치로 머지됐고, fos-assistant #185 도 같은 원인으로 닫혔다
+- 소계획으로 나누는 일을 맡기면 「worker 를 띄우지 않는다. 소계획마다 `ready:` status 메시지를 보낸다」 와 그 형식을 적는다.
+  이유는 [언제 쓰나](#언제-쓰나)에 있다
+- 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」 와 「`worker_done` 은 완료 기준을 채운 뒤 본체가 한 번만 보낸다」.
+  하위 에이전트는 worker 와 같은 터미널 핸들로 보내서, Orca 는 누가 보낸 `worker_done` 인지 구분하지 못한다.
+  이 두 줄은 예방이고, 완료 판정은 6단계가 git 으로 한다
 
 ## 3. 띄우기
 
@@ -136,6 +152,27 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 2026-09-30 fos-assistant 워크트리가 origin/main 보다 125커밋 뒤에서 시작했고, worker 가 계획 도중에 알아챘다.
 띄우기 전에 `git -C <repo> fetch origin` 으로 원격을 갱신하고, main 이 깨끗하면 `git -C <repo> merge --ff-only origin/main` 으로 로컬 main 도 맞춘다.
 
+codex 를 띄우기 전에 [codex 준비 판정](#codex-준비-판정)의 설정이 있는지 본다.
+
+**`--spec` 에는 지시서 경로를 담은 한 줄만 준다.** 새 worktree 를 만들 때는 `--name` 이 필수다.
+`$SPEC_FILE` 은 2단계의 지시서 경로, `$NAME` 은 새 worktree 이름, `$REPO` 는 대상 저장소 경로다.
+
+```bash
+SPEC_LINE="지시서 $SPEC_FILE 를 끝까지 읽고 수행한다. 못 읽으면 escalation 으로 알린다."
+orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" \
+  --worktree new-top-level --name "$NAME" --repo "path:$REPO" --base-branch origin/main \
+  --agent codex --model gpt-6.1-sol --effort low --json
+```
+
+이미 있는 worktree 에 띄울 때는 `--worktree path:` 만 준다. 5단계의 후속 일과 worker 가 보낸 `ready:` 가 여기 해당한다.
+`--name`, `--repo`, `--base-branch` 는 이때 주지 않는다.
+`orca orchestration worker-start --help` 가 생성 플래그(`--name`, `--repo`, `--base-branch`, `--display-name`, `--comment`, `--setup`)는 current 나 기존 worktree 에서 거절된다고 밝힌다(2026-10-05 확인, 띄워서 시험하지는 않았다).
+
+```bash
+orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "path:$WORKTREE" \
+  --agent claude --model claude-sonnet-5-5 --effort medium --json
+```
+
 띄운 직후 두 가지를 확인한다.
 
 - `worker-start` 응답의 `launch.effective` 가 1단계에서 고른 모델, effort 와 같다
@@ -143,98 +180,22 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 
 `--worktree new-top-level` 은 `<repo>/worktrees/<repo>/<name>` 에 워크트리를 만든다(Orca 1.4.215).
 그 경로가 ignore 되지 않아, main 에서 `git add -A` 를 하면 워크트리가 커밋될 수 있다.
-보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
+`worktrees/` 가 보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
 Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지 않는다.
 
-## 4. 기다리기
+`worker-start` 가 0 이 아닌 코드로 끝나면 새로 띄우지 않고 아래 절에서 원인을 찾는다.
 
-**`check --wait` 는 백그라운드로 하나만 건다.**
-앞에서 돌리면 그동안 코디네이터가 막힌다.
-둘째 대기는 `waiter_exists` 로 바로 끝나고 거기 붙인 `--ack` 만 처리된다.
+### codex 준비 판정
 
-대기 출력에는 15초마다 `{"_keepalive":true,...}` 줄이 섞여 그대로는 JSON 으로 읽히지 않는다.
-대기를 걸 때 그 줄을 빼고 받는다.
+Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 아래 두 줄을 둔다.
 
-```bash
-orca orchestration check --run <run_id> --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json | grep -v _keepalive
+```toml
+terminal_title = ["app-name", "run-state", "project-name"]
+check_for_update_on_startup = false
 ```
 
-대기는 `--timeout-ms` 가 지나면 메시지 없이 `timedOut: true` 로 끝난다. 실패가 아니므로 다시 건다.
-
-백그라운드 대기가 종료 코드 144 로 끝난 것처럼 보여도 Orca CLI 프로세스가 살아 있을 수 있다.
-그 프로세스가 대기 자리를 쥐고 있으면 새로 건 대기가 `waiter_exists` 로 바로 끝난다.
-찾아서 종료한 뒤 다시 건다. 이 세션이 건 프로세스이므로 다른 run 의 것과 구분해서 종료한다.
-
-```bash
-ps -eo pid,command | grep "orchestration check --wait" | grep -v grep
-```
-
-Orca runtime 이 잠시 끊기면 `runtime_unavailable` 로 끝나기도 한다. `orca status` 로 살아 있는지 확인한 뒤 다시 건다.
-2026-10 fos-accountbook 에서 둘 다 겪었다.
-
-`You have N orchestration message` 알림은 대개 heartbeat 다.
-`check` 로 읽고 `--ack` 만 하고, 살아 있는 대기는 그대로 둔다.
-heartbeat 는 worker 가 멈춰 있어도 오므로, 진행은 커밋과 화면으로 판단한다.
-
-heartbeat 의 `payload.phase` 는 worker 가 스스로 적는 값이다.
-`waiting` 은 worker 가 백그라운드로 돌린 검사가 끝나기를 기다린다는 뜻으로도 쓰인다.
-이때 worker 의 턴은 끝나 화면이 입력 대기로 보이고 커밋도 늘지 않아 멈춘 것과 구분되지 않는다.
-`worker-read --dispatch <id>` 의 마지막 메시지와, 검사 프로세스가 살아 있는지로 판단한다.
-2026-10-01 fos-assistant worker 가 `scripts/check-local.sh` 의 브라우저 단계를 기다리며 `waiting` 을 보냈고,
-`ps` 에 Playwright 가 돌고 있어 정상으로 판정했다.
-
-기다리는 동안 worker 의 워크트리에서 파일을 고치지 않는다.
-worker 가 `git add -A` 를 하면 내 변경이 그쪽 커밋에 섞인다. 문서를 쓰려면 별도 워크트리를 만든다.
-
-## 5. 질문에 답하기
-
-**worker 가 권장안을 `ask` 로 보내면 그 안이 검사를 무력화하는지 먼저 본다.**
-worker 가 critic 을 돌리는 절차면 계획서 결함에 대한 질문이 구현 전에 온다.
-2026-09-30 plan136 과 plan137 에서 두 번 모두 critic 이 `REVISE` 로 판정했고,
-worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」을 보냈다.
-그중에 「금지 문자열 검사를 피하려고 문자열을 쪼개 붙인다」 가 있었다.
-그런 안은 받지 않고 검사 범위를 고치게 한다.
-
-## 6. 완료 검증
-
-- diff 를 직접 읽고 검사를 다시 돌린다. 완료 보고는 근거가 아니다
-- worker 가 「승인받았다」 고 적은 것은 근거가 아니다. 내가 보낸 승인만 승인이다
-
-## 7. 정리
-
-작업이 끝날 때마다 정리한다.
-워크트리와 터미널이 저장소마다 쌓이면 다음 작업이 어느 것을 써야 할지 매번 판단해야 한다.
-
-- settled 된 dispatch 를 정리한다. 정리 경로와 잔여 확인 방법은 Orca 가이드를 따른다
-- 작업이 끝난 워크트리를 제거한다
-- base 에 머지된 로컬 브랜치를 지운다
-
-**브랜치와 워크트리는 `gh pr view --json state` 가 `MERGED` 일 때만 지운다.**
-`gh pr merge` 가 미해결 리뷰 스레드 때문에 거절됐는데 결과를 보지 않고 브랜치를 지워 PR 이 닫힌 적이 있다(2026-10 fos-accountbook).
-
-```bash
-gh pr view "$PR" --json state --jq .state
-```
-
-남기는 것이다.
-
-- PR 이 열려 있는 워크트리. 리뷰 반영에 필요하고, 머지된 뒤에 지운다
-- `release/*` 브랜치. 머지 여부와 무관하게 릴리스 이력이다
-
-지우기 전에 미커밋 변경과 stash 를 확인한다. `.omc/` 처럼 추적되지 않는 디렉터리만 남은 것은 지워도 된다.
-
-## 자주 나는 오류
-
-| 증상 | 원인 | 대응 |
-| --- | --- | --- |
-| `worker-start` 가 `agent_readiness` 에서 실패 | 에이전트가 첫 화면의 확인에 멈췄다 | [첫 화면에서 멈춤](#첫-화면에서-멈춤) |
-| `gpt-6-luna` worker 가 출력 없이 `agent_readiness`, `failed` 로 끝남 | 이 모델 조합으로는 에이전트가 준비되지 않았다 | [luna 실행 실패](#luna-실행-실패) |
-| worker 가 멈추고 보고가 `capability is revoked` 로 거절됨 | 하위 에이전트가 `worker_done` 을 보내 dispatch 가 닫혔다 | [하위 에이전트가 dispatch 를 닫음](#하위-에이전트가-dispatch-를-닫음) |
-| codex 가 떠 있는데 `agent_readiness` 실패 | 터미널 제목에 `Codex` 와 `ready` 가 함께 없다 | [codex 준비 판정](#codex-준비-판정) |
-| `check` 나 `worker-start --run` 이 `consumer_fenced` | 코디네이터가 다른 run 에 묶였다 | [run 이 둘로 나뉨](#run-이-둘로-나뉨) |
-| 세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` | 이전 세션의 대기 프로세스가 대기 자리를 쥐고 있다 | [이전 세션의 대기](#이전-세션의-대기) |
-| heartbeat 는 오는데 커밋과 화면이 몇 분째 그대로 | 하위 에이전트가 권한 확인 창에서 기다린다 | [권한 확인 창](#권한-확인-창) |
-| worker 워크트리의 파일을 이미 고쳤다 | 4단계를 어겼다 | [worker 워크트리를 고침](#worker-워크트리를-고침) |
+이 설정이 없으면 codex 가 떠 있어도 터미널 제목에 `Codex` 와 `ready` 가 함께 나오지 않아 `agent_readiness` 에서 실패한다.
+둘째 줄은 시작할 때 업데이트 안내로 빠지지 않게 한다.
 
 ### 첫 화면에서 멈춤
 
@@ -260,30 +221,177 @@ orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --ag
 
 `$WORKTREE` 는 처음 띄운 워크트리 경로다. 이 방법으로 같은 Task 를 끝냈다.
 
-### 하위 에이전트가 dispatch 를 닫음
+## 4. 기다리기
 
-worker 가 띄운 하위 에이전트가 `worker_done` 을 보내면 dispatch 가 닫힌다.
-이후 worker 의 보고는 `capability is revoked` 로 거절되고 worker 는 멈춘다(2026-10 fe-plan9).
-예방은 2단계 지시서의 「하위 에이전트는 orca 명령을 쓰지 않는다」 줄이다.
+**`check --wait` 는 하네스의 백그라운드 실행 기능으로 하나만 건다.**
+앞에서 돌리면 그동안 코디네이터가 막힌다.
+셸의 `&` 로 띄우면 끝나도 완료 알림이 오지 않고 고아 프로세스가 남는다.
+둘째 대기는 `waiter_exists` 로 바로 끝나고 거기 붙인 `--ack` 만 처리된다.
 
-닫힌 뒤에는 같은 터미널에 남은 일을 새 dispatch 로 준다.
+**대기 시간은 하네스의 명령 한도보다 짧게 준다.**
+Claude Code 의 백그라운드 Bash 는 따로 정하지 않으면 30분 뒤 멈춘다.
+Bash 도구의 `timeout` 을 최대인 7200000 으로 주고 `--timeout-ms` 는 그보다 작은 7000000 으로 준다.
+2026-10-05 fos-agents 코디네이터의 대기가 30분 한도에 걸려 끊겼다.
+
+**처리한 delivery 는 다음 대기의 `--ack` 로 넘긴다.**
+묶인 run 은 ack 하기 전까지 같은 delivery 를 다시 준다.
+2026-10-05 fos-agents 에서 이미 처리한 메시지가 다음 대기에서 다시 나왔다.
+앞 대기가 돌려준 `result.deliveryId` 를 `$DELIVERY_ID` 에 넣는다. 첫 대기처럼 넘길 delivery 가 없으면 `--ack "$DELIVERY_ID"` 를 통째로 뺀다.
+
+keepalive 줄은 15초마다 stderr 로 나와 출력 파일에 섞인다. 그 줄을 빼고 받는다. 이때 파이프의 종료 코드는 `grep` 의 것이라, 대기 결과는 JSON 의 `timedOut` 과 `messages` 로 판단한다.
+worker 가 `ready:` 같은 status 메시지를 보내기로 했으면 `--types` 에 `status` 를 더한다. `--types` 는 깨어나는 조건이다.
 
 ```bash
-orca orchestration worker-start --spec "$SPEC" --terminal "$TERMINAL_HANDLE" --worktree "path:$WORKTREE"
+orca orchestration check --run "$RUN_ID" --ack "$DELIVERY_ID" --wait --types "worker_done,escalation,question" --timeout-ms 7000000 --json 2>&1 | grep -v _keepalive
 ```
 
-`$SPEC` 은 남은 일만 적은 지시서 파일이다.
+대기는 `--timeout-ms` 가 지나면 메시지 없이 `timedOut: true` 로 끝난다. 실패가 아니므로 다시 건다.
 
-### codex 준비 판정
+백그라운드 대기가 종료 코드 144 로 끝난 것처럼 보여도 Orca CLI 프로세스가 살아 있을 수 있다.
+그 프로세스가 대기 자리를 쥐고 있으면 새로 건 대기가 `waiter_exists` 로 바로 끝난다.
+찾아서 종료한 뒤 다시 건다. 이 세션이 건 프로세스이므로 다른 run 의 것과 구분해서 종료한다.
+세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` 면 [이전 세션의 대기](#이전-세션의-대기)를 따른다.
 
-Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 아래 두 줄을 둔다.
-
-```toml
-terminal_title = ["app-name", "run-state", "project-name"]
-check_for_update_on_startup = false
+```bash
+ps -eo pid,command | grep "orchestration check --wait" | grep -v grep
 ```
 
-둘째 줄은 시작할 때 업데이트 안내로 빠지지 않게 한다.
+Orca runtime 이 잠시 끊기면 `runtime_unavailable` 로 끝나기도 한다. `orca status` 로 살아 있는지 확인한 뒤 다시 건다.
+2026-10 fos-accountbook 에서 둘 다 겪었다.
+
+`You have N orchestration message` 알림은 대개 heartbeat 다.
+살아 있는 대기는 그대로 두고, 그 대기가 heartbeat 만 든 delivery 를 돌려주면 다음 대기의 `--ack` 로 넘긴다.
+heartbeat 는 worker 가 멈춰 있어도 오므로, 진행은 커밋과 화면으로 판단한다.
+
+heartbeat 의 `payload.phase` 는 worker 가 스스로 적는 값이다.
+`waiting` 은 worker 가 백그라운드로 돌린 검사가 끝나기를 기다린다는 뜻으로도 쓰인다.
+이때 worker 의 턴은 끝나 화면이 입력 대기로 보이고 커밋도 늘지 않아 멈춘 것과 구분되지 않는다.
+`worker-read --dispatch <id>` 의 마지막 메시지와, 검사 프로세스가 살아 있는지로 판단한다.
+2026-10-01 fos-assistant worker 가 `scripts/check-local.sh` 의 브라우저 단계를 기다리며 `waiting` 을 보냈고,
+`ps` 에 Playwright 가 돌고 있어 정상으로 판정했다.
+
+기다리는 동안 worker 의 워크트리에서 파일을 고치지 않는다.
+worker 가 `git add -A` 를 하면 내 변경이 그쪽 커밋에 섞인다. 문서를 쓰려면 별도 워크트리를 만든다.
+이미 고쳤으면 [worker 워크트리를 고침](#worker-워크트리를-고침)을 따른다.
+
+### 이전 세션의 대기
+
+이전 세션의 백그라운드 `check --wait` 는 세션이 끝나도 부모 없는 프로세스로 남는다.
+그 대기가 받은 메시지는 아무에게도 전달되지 않는다.
+
+```bash
+ps -ax -o pid,ppid,lstart,command | grep "orchestration check" | grep "$RUN_ID"
+```
+
+부모 PID 가 1 이고 시작 시각이 이 세션보다 앞선 것이 그것이다.
+그 프로세스와 부모 셸을 `kill` 하고 대기를 다시 건다.
+다른 run 의 대기는 다른 세션의 것이므로 건드리지 않는다.
+
+### worker 워크트리를 고침
+
+1. 고친 내용을 저장소 밖으로 복사한다
+2. `git checkout -- <파일>` 로 되돌린다
+3. worker 의 브랜치를 머지한 다음 main 에서 다시 적용한다
+
+## 5. 답하고 지시 보내기
+
+**worker 에게 보내는 답과 후속 지시는 그 worker 가 보낸 마지막 메시지에 `reply` 로 단다.**
+
+```bash
+orca orchestration reply --id "$MSG_ID" --body "$BODY" --json
+```
+
+`send --to dispatch:<id>` 는 2026-10-05 fos-agents 에서 두 번 거절됐다.
+그 worker 가 하위 run 을 만든 뒤에는 `recipient_run_mismatch`, 끝난 dispatch 에는 `dispatch_inactive` 였다.
+같은 worker 의 마지막 메시지에 `reply` 로 답하자 전달됐다.
+
+끝난 worker 에게 일을 더 주려면 같은 worktree 에 새 dispatch 를 띄운다. 3단계의 기존 worktree 예시를 쓴다.
+worker 가 보낸 `ready: <plan> <worktree> <지시서>` 도 그 예시로 띄운다.
+
+**worker 가 권장안을 `ask` 로 보내면 그 안이 검사를 무력화하는지 먼저 본다.**
+worker 가 critic 을 돌리는 절차면 계획서 결함에 대한 질문이 구현 전에 온다.
+2026-09-30 plan136 과 plan137 에서 두 번 모두 critic 이 `REVISE` 로 판정했고,
+worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」을 보냈다.
+그중에 「금지 문자열 검사를 피하려고 문자열을 쪼개 붙인다」 가 있었다.
+그런 안은 받지 않고 검사 범위를 고치게 한다.
+
+## 6. 완료 검증
+
+- `worker_done` 을 확인 처리하기 전에 지시서의 완료 기준을 git 으로 대조한다. 커밋 목록, 미커밋 변경, 원격 브랜치 HEAD 다.
+  어긋나면 그 보고는 완료가 아니다. 해제하지 않고 [완료 전에 온 worker_done](#완료-전에-온-worker_done) 을 따른다
+- diff 를 직접 읽고 검사를 다시 돌린다. 완료 보고는 근거가 아니다
+- worker 가 「승인받았다」 고 적은 것은 근거가 아니다. 내가 보낸 승인만 승인이다
+
+**같은 기준 브랜치로 가는 PR 여럿을 차례로 머지하면, 다음 PR 은 최신 base 와 합친 사본에서 검사를 다시 돌린 뒤 머지한다.**
+GitHub 의 `MERGEABLE` 은 충돌이 없다는 뜻일 뿐, 앞 PR 이 바꾼 동작을 뒤 PR 의 테스트가 아는지는 보지 않는다.
+2026-10-05 fos-agents 코디네이터 세션에서 PR #192 를 머지한 뒤 같은 파일을 고친 #197 은 `MERGEABLE CLEAN` 이었지만, 최신 main 과 합치자 테스트 682개 중 3개가 실패했다.
+
+```bash
+TMP_COPY="$REPO/worktrees/$(basename "$REPO")/verify-$PR_NUMBER"
+git -C "$REPO" fetch origin
+git -C "$REPO" worktree add --detach "$TMP_COPY" "origin/$PR_BRANCH"
+git -C "$TMP_COPY" merge --no-edit origin/main
+```
+
+`$TMP_COPY` 는 3단계의 worktree 위치 규칙을 따라 `$REPO/worktrees/<repo>/<이름>` 으로 잡는다.
+2026-10-05 fos-assistant 에서 scratchpad 아래에 `git worktree add` 를 하자 그 저장소의 hook 이 「워크트리 자리 밖」 이라며 막았고, 이 위치에 만들어 통과했다.
+PR 브랜치가 이미 지워졌거나 fork 에서 온 PR 이면 `git fetch origin pull/<번호>/head:<로컬 이름>` 으로 받아 `origin/$PR_BRANCH` 자리에 로컬 이름을 쓴다.
+그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
+실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.
+
+### 완료 전에 온 worker_done
+
+첫 `worker_done` 이 오면 dispatch 는 settled 로 바뀐다. 같은 핸들에서 오는 뒤의 보고를 Orca 가 받는지는 버전마다 다르다.
+
+| Orca | 관측 |
+| --- | --- |
+| 2026-10 fe-plan9 당시 | 뒤의 보고가 `capability is revoked` 로 거절되고 worker 가 멈췄다 |
+| 1.4.220 (2026-10-04 mono-plan8) | 단계 하나를 커밋하기 전에 온 `worker_done` 뒤에도 본체는 계속 일했고, 커밋과 push 뒤의 두 번째 `worker_done` 도 전달됐다 |
+
+판단은 터미널과 git 으로 한다.
+
+1. `worker-show --dispatch <id>` 의 `terminal.title` 이 `Working` 이면 해제하지 않고 기다린다. 커밋 목록과 원격 HEAD 가 바뀌는지 본다
+2. 제목이 `Ready` 인데 완료 기준에 못 미치면 같은 터미널에 남은 일을 새 dispatch 로 준다
+
+```bash
+orca orchestration worker-start --spec "$SPEC_LINE" --terminal "$TERMINAL_HANDLE" --worktree "path:$WORKTREE"
+```
+
+`$SPEC_LINE` 은 남은 일만 적은 지시서의 경로를 담은 한 줄이다. 형식은 3단계 예시와 같다.
+
+## 7. 정리
+
+작업이 끝날 때마다 정리한다.
+워크트리와 터미널이 저장소마다 쌓이면 다음 작업이 어느 것을 써야 할지 매번 판단해야 한다.
+
+- settled 된 dispatch 를 정리한다. 정리 경로와 잔여 확인 방법은 Orca 가이드를 따른다
+- 작업이 끝난 워크트리를 제거한다
+- base 에 머지된 로컬 브랜치를 지운다
+
+**머지 직전과 지우기 직전에 `gh pr view --json state` 를 본다.** 머지는 `OPEN` 일 때만 하고, 브랜치와 워크트리는 `MERGED` 일 때만 지운다.
+`gh pr merge` 가 미해결 리뷰 스레드 때문에 거절됐는데 결과를 보지 않고 브랜치를 지워 PR 이 닫힌 적이 있다(2026-10 fos-accountbook).
+다른 세션이나 사용자가 같은 PR 을 먼저 머지하기도 한다(2026-10-05 fos-agents 코디네이터 세션의 PR #195).
+
+```bash
+gh pr view "$PR" --json state --jq .state
+```
+
+남기는 것이다.
+
+- PR 이 열려 있는 워크트리. 리뷰 반영에 필요하고, 머지된 뒤에 지운다
+- `release/*` 브랜치. 머지 여부와 무관하게 릴리스 이력이다
+
+지우기 전에 미커밋 변경과 stash 를 확인한다. `.omc/` 처럼 추적되지 않는 디렉터리만 남은 것은 지워도 된다.
+
+## 자주 나는 오류
+
+단계 절차 중에 생기지 않고 증상이 먼저 보이는 것만 둔다.
+
+| 증상 | 원인 | 대응 |
+| --- | --- | --- |
+| `check` 나 `worker-start --run` 이 `consumer_fenced` | 코디네이터가 다른 run 에 묶였다 | [run 이 둘로 나뉨](#run-이-둘로-나뉨) |
+| heartbeat 는 오는데 커밋과 화면이 몇 분째 그대로 | 하위 에이전트가 권한 확인 창에서 기다린다 | [권한 확인 창](#권한-확인-창) |
+| codex 화면에 `Usage limit reached` 가 떠 있는데 liveness 는 `live` 다 | 계정 사용량이 다 떨어졌다 | [사용량 한도로 멈춤](#사용량-한도로-멈춤) |
 
 ### run 이 둘로 나뉨
 
@@ -293,34 +401,32 @@ A 에 걸어 둔 `check --wait` 는 A 의 완료 메시지를 받지 못했다.
 `orca orchestration run-use --id <run_id>` 로 옮겨 붙은 뒤 메시지를 읽는다.
 상태만 볼 때는 fenced 상태에서도 `worker-list --run <run_id>` 가 동작한다.
 
-### 이전 세션의 대기
-
-이전 세션의 백그라운드 `check --wait` 는 세션이 끝나도 부모 없는 프로세스로 남는다.
-그 대기가 받은 메시지는 아무에게도 전달되지 않는다.
-
-```bash
-ps -ax -o pid,ppid,lstart,command | grep "orchestration check" | grep <run_id>
-```
-
-부모 PID 가 1 이고 시작 시각이 이 세션보다 앞선 것이 그것이다.
-그 프로세스와 부모 셸을 `kill` 하고 대기를 다시 건다.
-다른 run 의 대기는 다른 세션의 것이므로 건드리지 않는다.
-
 ### 권한 확인 창
 
 `terminal read --screen` 으로 화면을 본다.
 하위 에이전트가 `;` 로 이은 긴 셸을 쓰면 `Parse error` 로 자동 승인되지 않고 `Do you want to proceed?` 에서 기다린다.
 명령이 무엇을 하는지 읽고, 영향이 worker 자신의 임시 디렉터리 안이면 승인하고 사용자에게 알린다. 아니면 사용자에게 묻는다.
 
-### worker 워크트리를 고침
+### 사용량 한도로 멈춤
 
-1. 고친 내용을 저장소 밖으로 복사한다
-2. `git checkout -- <파일>` 로 되돌린다
-3. worker 의 브랜치를 머지한 다음 main 에서 다시 적용한다
+heartbeat 와 liveness 는 `live` 로 남아 대기만으로는 알 수 없다. `terminal read --screen` 으로 화면을 본다.
+한도 안내가 떠 있으면 그 worker 는 더 진행하지 않는다는 근거다.
+
+`worker-stop` 은 터미널이 `user_owned` 이면 `stop_unknown` 으로 끝나고, 이 상태의 Task 에 `--retry-of` 를 주면 `task_not_startable` 로 거절된다.
+`worker-abandon` 으로 dispatch 를 닫은 뒤 다른 제공자로 다시 띄운다. 워크트리는 그대로 이어 쓴다.
+
+```bash
+orca orchestration worker-abandon --dispatch "$DISPATCH_ID" --json
+orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --worktree "id:$WORKTREE_ID" --agent claude --model claude-sonnet-5-5 --effort medium --json
+```
+
+2026-10-03 fos-accountbook mono-plan6 에서 codex worker 가 첫 커밋 전에 한도로 멈췄고, 이 순서로 Claude worker 가 같은 워크트리에서 끝냈다.
 
 ## 이 문서에 더할 때
 
 - 오류 없이 잘못된 결과가 완료로 보고되는 곳과, 멈춘 원인이 바로 보이지 않는 곳만 적는다
 - CLI 가 인자 오류로 거절하는 것은 적지 않는다. 거절 메시지가 이유를 알려준다
-- 끝에 새 절을 붙이지 않는다. 그 일이 일어나는 단계 절에 넣거나, 증상이 먼저 보이는 것이면 「자주 나는 오류」 표에 한 줄과 절 하나를 더한다
+- 그 일이 일어나는 단계 절의 절차 안에 넣는다. 처음 따라 하는 세션이 그 단계에서 만나야 예방된다
+- 회복 절차가 길면 그 단계 절 아래 `###` 절로 둔다
+- 「자주 나는 오류」 표에는 어느 단계에서 생겼는지 모른 채 증상만 보이는 것만 더한다
 - 실측 근거는 날짜와 대상, 관측한 결과를 한 줄로 적는다
