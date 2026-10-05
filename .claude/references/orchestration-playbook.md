@@ -25,7 +25,8 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 
 **PR 생성은 사용자가 미리 허락한 경우에만 worker 에게 맡긴다.**
 허락받았으면 2단계 지시서에 「PR 생성은 승인돼 있다」 를 적는다. 허락받지 않았으면 worker 는 브랜치 push 까지만 하고, 코디네이터가 사용자에게 확인받은 뒤 PR 을 연다.
-머지는 worker 에게 맡기지 않는다. 코디네이터가 6단계 검증 뒤 사용자 확인을 받고 7단계의 상태 확인을 거쳐 한다.
+머지는 worker 에게 맡기지 않는다. 사용자가 머지까지 맡겼으면 코디네이터가 6단계 검증 뒤 7단계의 상태 확인을 거쳐 머지한다.
+맡기지 않았으면 6단계 검증 뒤 사용자에게 확인받고 같은 상태 확인을 거쳐 머지한다.
 
 ## 단계
 
@@ -164,7 +165,8 @@ orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" \
 ```
 
 이미 있는 worktree 에 띄울 때는 `--worktree path:` 만 준다. 5단계의 후속 일과 worker 가 보낸 `ready:` 가 여기 해당한다.
-`--name`, `--repo`, `--base-branch` 는 이때 거절된다.
+`--name`, `--repo`, `--base-branch` 는 이때 주지 않는다.
+`orca orchestration worker-start --help` 가 생성 플래그(`--name`, `--repo`, `--base-branch`, `--display-name`, `--comment`, `--setup`)는 current 나 기존 worktree 에서 거절된다고 밝힌다(2026-10-05 확인, 띄워서 시험하지는 않았다).
 
 ```bash
 orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "path:$WORKTREE" \
@@ -325,12 +327,16 @@ GitHub 의 `MERGEABLE` 은 충돌이 없다는 뜻일 뿐, 앞 PR 이 바꾼 동
 2026-10-05 fos-agents 코디네이터 세션에서 PR #192 를 머지한 뒤 같은 파일을 고친 #197 은 `MERGEABLE CLEAN` 이었지만, 최신 main 과 합치자 테스트 682개 중 3개가 실패했다.
 
 ```bash
+TMP_COPY="$REPO/worktrees/$(basename "$REPO")/verify-$PR_NUMBER"
 git -C "$REPO" fetch origin
 git -C "$REPO" worktree add --detach "$TMP_COPY" "origin/$PR_BRANCH"
 git -C "$TMP_COPY" merge --no-edit origin/main
 ```
 
-`$TMP_COPY` 는 scratchpad 같은 임시 경로다. 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
+`$TMP_COPY` 는 3단계의 worktree 위치 규칙을 따라 `$REPO/worktrees/<repo>/<이름>` 으로 잡는다.
+2026-10-05 fos-assistant 에서 scratchpad 아래에 `git worktree add` 를 하자 그 저장소의 hook 이 「워크트리 자리 밖」 이라며 막았고, 이 위치에 만들어 통과했다.
+PR 브랜치가 이미 지워졌거나 fork 에서 온 PR 이면 `git fetch origin pull/<번호>/head:<로컬 이름>` 으로 받아 `origin/$PR_BRANCH` 자리에 로컬 이름을 쓴다.
+그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
 실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.
 
 ### 완료 전에 온 worker_done
