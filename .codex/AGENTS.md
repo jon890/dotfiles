@@ -66,7 +66,6 @@
 - 위임할 때는 맡길 범위와 기대하는 이득, 선행 결과와 결정하지 못한 사항을 함께 적는다. 스킬의 위임 권고도 이 기준을 따른다.
 
 위임한 결과를 머지하거나 PR을 만들 때는 사용자의 확인을 받는다.
-`fos-home-infra`만 예외로, 홈서버에서 실제로 돌려 검증했으면 확인 없이 머지해도 된다.
 
 **worker를 띄우기 전에 `~/.claude/references/orchestration-playbook.md`를 읽는다.**
 오류 없이 잘못된 결과가 완료로 보고되는 자리와 기다리는 방법이 거기 있다.
@@ -114,8 +113,8 @@ GitHub PR의 제목과 본문은 한국어를 기본으로 작성한다.
 문서와 사용자 응답의 표현 규칙은 다음 파일을 단일 소스로 삼고 작성 전에 읽는다.
 
 - `~/.claude/rules/korean-style.md`: 쉬운 한국어와 문장 구성
-- `~/.claude/rules/writing-structure.md`: 분량에 맞는 글 구조
-- `~/.claude/rules/markdown-readability.md`: 마크다운 렌더링과 편집기 주의점
+- `~/personal/fos-skills/korean-check/references/writing-structure.md`: 분량에 맞는 글 구조
+- `~/personal/fos-skills/korean-check/references/markdown-readability.md`: 마크다운 렌더링과 편집기 주의점
 
 이력서와 경력기술서에서는 `운영 경계`, `품질 기반`처럼 실제 작업을 가리는 추상 표현을 쓰지 않는다.
 제품, 문제, 수행한 작업과 확인한 결과를 직접 쓴다.
@@ -135,20 +134,16 @@ NED와 F1 같은 평가지표 이름을 성과처럼 나열하지 않는다.
 표기 검사기와 가독성 검사기를 함께 돌려, 통과하면 0, 위반을 찾으면 1, 실행하지 못하면 2로 끝난다.
 
 ```bash
-/Users/nhn/personal/fos-skills/korean-check/scripts/check.sh "$FILE"
+~/.claude/scripts/korean-check.sh "$FILE"
 ```
 
 한국어는 UTF-8 원문으로 쓰고 `\uXXXX` 값을 손으로 만들지 않는다.
 
 ## 지식 검색
 
-개인 결정, 취향, 학습 내용, 다른 프로젝트의 관례는 `brain-search` 스킬로 조회한다.
 회사 규칙과 사내 시스템, Dooray 업무와 위키는 `nbrain` 스킬로 조회한다.
 
-- 개인 지식 기반은 `public`과 `private` 두 영역을 모두 검색하되 출처를 구분한다.
-- qmd는 `~/.local/bin-pinned/qmd` 경로로 실행한다.
-- `bun.lock`을 생성하거나 수정하는 방식으로 qmd 실행 환경을 복구하지 않는다.
-- 환경 고유 값을 확신 없이 추측하려는 순간에는 해당 지식원을 먼저 검색한다.
+- 사내 환경 고유 값을 확신 없이 추측하려는 순간에는 `nbrain`을 먼저 검색한다.
 - 비공개 지식을 공개 맥락에 노출하지 않는다.
 - 사용자의 승인 없이 개인 지식 기반을 추가하거나 변경하지 않는다.
 
