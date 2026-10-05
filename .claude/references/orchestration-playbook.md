@@ -20,11 +20,12 @@
 **일을 여러 worker 로 나누면 worker 는 모두 코디네이터가 띄운다.** worker 는 다시 worker 를 띄우지 못한다.
 worker 가 띄우면 `nested_worker_depth_exceeded` 로 거절되고, 새 run 을 만들어도 깊이는 초기화되지 않는다.
 2026-10-05 fos-assistant 이슈 worker 가 소계획 여섯 개를 codex worker 로 맡기려다 depth 2, max 1 로 거절됐다.
-그래서 worker 에게 나눈 일을 맡길 때는 계획서 작성과 검토, worktree 준비까지만 맡긴다.
+일을 나눠야 하면 worker 에게는 계획서 작성과 검토, worktree 준비까지만 맡긴다.
 worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절대경로>` 를 status 메시지로 보내고, 코디네이터가 그 worktree 에 띄운다.
 
-**PR 생성과 머지는 사용자가 미리 허락한 범위에서만 worker 에게 맡긴다.**
-허락받은 범위는 2단계 지시서에 그 문구로 적는다. 적지 않은 것은 worker 가 하지 않고, 코디네이터가 사용자에게 확인받은 뒤 한다.
+**PR 생성은 사용자가 미리 허락한 경우에만 worker 에게 맡긴다.**
+허락받았으면 2단계 지시서에 「PR 생성은 승인돼 있다」 를 적는다. 허락받지 않았으면 worker 는 브랜치 push 까지만 하고, 코디네이터가 사용자에게 확인받은 뒤 PR 을 연다.
+머지는 worker 에게 맡기지 않는다. 코디네이터가 6단계 검증 뒤 사용자 확인을 받고 7단계의 상태 확인을 거쳐 한다.
 
 ## 단계
 
@@ -36,7 +37,7 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 | 4 | 기다리기 | 이 세션의 백그라운드 `check --wait` 가 하나만 돌고, 앞 대기가 돌려준 `deliveryId` 를 `--ack` 로 넘겼다 |
 | 5 | 답하고 지시 보내기 | 답과 지시를 worker 의 마지막 메시지에 `reply` 로 보냈고, 그 답이 검사를 무력화하지 않는다 |
 | 6 | 완료 검증 | diff 를 직접 읽었고 검사를 다시 돌려 통과했다. 앞 PR 이 머지된 뒤라면 최신 base 와 합친 사본에서 통과했다 |
-| 7 | 정리 | 끝난 dispatch 와 워크트리, 머지된 로컬 브랜치가 없다 |
+| 7 | 정리 | 머지와 삭제 직전에 `gh pr view --json state` 를 봤고, 끝난 dispatch 와 워크트리, 머지된 로컬 브랜치가 없다 |
 
 각 단계에서 생기는 오류와 대응은 그 단계 절에 있다.
 어느 단계에서 생겼는지 모르는 증상만 [자주 나는 오류](#자주-나는-오류)에서 찾는다.
@@ -177,7 +178,7 @@ orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "
 
 `--worktree new-top-level` 은 `<repo>/worktrees/<repo>/<name>` 에 워크트리를 만든다(Orca 1.4.215).
 그 경로가 ignore 되지 않아, main 에서 `git add -A` 를 하면 워크트리가 커밋될 수 있다.
-보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
+`worktrees/` 가 보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
 Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지 않는다.
 
 `worker-start` 가 0 이 아닌 코드로 끝나면 새로 띄우지 않고 아래 절에서 원인을 찾는다.
@@ -233,9 +234,9 @@ Bash 도구의 `timeout` 을 최대인 7200000 으로 주고 `--timeout-ms` 는 
 **처리한 delivery 는 다음 대기의 `--ack` 로 넘긴다.**
 묶인 run 은 ack 하기 전까지 같은 delivery 를 다시 준다.
 2026-10-05 fos-agents 에서 이미 처리한 메시지가 다음 대기에서 다시 나왔다.
-첫 대기에는 `--ack` 를 빼고, 그 뒤로는 앞 대기가 돌려준 `deliveryId` 를 `$DELIVERY_ID` 에 넣는다.
+앞 대기가 돌려준 `result.deliveryId` 를 `$DELIVERY_ID` 에 넣는다. 첫 대기처럼 넘길 delivery 가 없으면 `--ack "$DELIVERY_ID"` 를 통째로 뺀다.
 
-keepalive 줄은 15초마다 stderr 로 나와 출력 파일에 섞인다. 그 줄을 빼고 받는다.
+keepalive 줄은 15초마다 stderr 로 나와 출력 파일에 섞인다. 그 줄을 빼고 받는다. 이때 파이프의 종료 코드는 `grep` 의 것이라, 대기 결과는 JSON 의 `timedOut` 과 `messages` 로 판단한다.
 worker 가 `ready:` 같은 status 메시지를 보내기로 했으면 `--types` 에 `status` 를 더한다. `--types` 는 깨어나는 조건이다.
 
 ```bash
@@ -257,7 +258,7 @@ Orca runtime 이 잠시 끊기면 `runtime_unavailable` 로 끝나기도 한다.
 2026-10 fos-accountbook 에서 둘 다 겪었다.
 
 `You have N orchestration message` 알림은 대개 heartbeat 다.
-`check` 로 읽고 `--ack` 만 하고, 살아 있는 대기는 그대로 둔다.
+살아 있는 대기는 그대로 두고, 그 대기가 heartbeat 만 든 delivery 를 돌려주면 다음 대기의 `--ack` 로 넘긴다.
 heartbeat 는 worker 가 멈춰 있어도 오므로, 진행은 커밋과 화면으로 판단한다.
 
 heartbeat 의 `payload.phase` 는 worker 가 스스로 적는 값이다.
@@ -329,7 +330,7 @@ git -C "$REPO" worktree add --detach "$TMP_COPY" "origin/$PR_BRANCH"
 git -C "$TMP_COPY" merge --no-edit origin/main
 ```
 
-`$TMP_COPY` 는 scratchpad 아래 경로다. 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
+`$TMP_COPY` 는 scratchpad 같은 임시 경로다. 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
 실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.
 
 ### 완료 전에 온 worker_done
