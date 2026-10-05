@@ -17,6 +17,12 @@
 저장소마다 변경이 독립된 검토 단위로 남아야 한다.
 한 세션이 여러 저장소의 브랜치를 쥐면 어느 변경이 어디에 얹혔는지 추적하기 어렵다.
 
+**일을 여러 worker 로 나누면 worker 는 모두 코디네이터가 띄운다.** worker 는 다시 worker 를 띄우지 못한다.
+worker 가 띄우면 `nested_worker_depth_exceeded` 로 거절되고, 새 run 을 만들어도 깊이는 초기화되지 않는다.
+2026-10-05 fos-assistant 이슈 worker 가 소계획 여섯 개를 codex worker 로 맡기려다 depth 2, max 1 로 거절됐다.
+그래서 worker 에게 나눈 일을 맡길 때는 계획서 작성과 검토, worktree 준비까지만 맡긴다.
+worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절대경로>` 를 status 메시지로 보내고, 코디네이터가 그 worktree 에 띄운다.
+
 위임한 결과를 머지하거나 PR 을 만들 때는 사용자의 확인을 받는다.
 
 ## 단계
@@ -26,9 +32,9 @@
 | 1 | 에이전트 고르기 | 에이전트, 모델, effort 와 고른 이유가 dispatch 보고에 한 줄로 있다 |
 | 2 | 지시서 쓰기 | 지시 본문이 파일에 있고 `--spec` 에는 그 경로만 있다 |
 | 3 | 띄우기 | `launch.effective` 가 고른 값과 같고, 대상 저장소 `git status` 에 `worktrees/` 가 없다 |
-| 4 | 기다리기 | 이 세션의 백그라운드 `check --wait` 가 하나만 돈다 |
-| 5 | 질문에 답하기 | 보낸 답이 검사를 무력화하지 않는다 |
-| 6 | 완료 검증 | diff 를 직접 읽었고 검사를 다시 돌려 통과했다 |
+| 4 | 기다리기 | 이 세션의 백그라운드 `check --wait` 가 하나만 돌고, 앞 대기가 돌려준 `deliveryId` 를 `--ack` 로 넘겼다 |
+| 5 | 답하고 지시 보내기 | 답과 지시를 worker 의 마지막 메시지에 `reply` 로 보냈고, 그 답이 검사를 무력화하지 않는다 |
+| 6 | 완료 검증 | diff 를 직접 읽었고 검사를 다시 돌려 통과했다. 앞 PR 이 머지된 뒤라면 최신 base 와 합친 사본에서 통과했다 |
 | 7 | 정리 | 끝난 dispatch 와 워크트리, 머지된 로컬 브랜치가 없다 |
 
 응답이 예상과 다르면 [자주 나는 오류](#자주-나는-오류)에서 증상으로 찾는다.
@@ -122,6 +128,11 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 - PR 을 열게 하면 「PR 생성은 승인돼 있다」 를 적는다.
   codex worker 의 기본 지침은 GitHub 게시를 막아, 지시서에 「PR 을 연다」 만 있으면 승인을 다시 묻는다.
   2026-10 fos-agents worker 가 그랬고, 문구를 명시한 뒤에는 묻지 않았다
+- PR 을 열게 하면 「PR 은 기준 브랜치를 base 로 따로 연다. 다른 PR 브랜치를 base 로 두지 않는다」 도 적는다.
+  앞 PR 브랜치를 base 로 연 PR 은 앞 PR 을 `--delete-branch` 로 머지하면 자동으로 닫히거나 앞 브랜치로 머지된다.
+  2026-10 fos-agents #158, #160 이 닫히고 #159 가 앞 브랜치로 머지됐고, fos-assistant #185 도 같은 원인으로 닫혔다
+- 소계획으로 나누는 일을 맡기면 「worker 를 띄우지 않는다. 소계획마다 `ready:` status 메시지를 보낸다」 와 그 형식을 적는다.
+  이유는 [언제 쓰나](#언제-쓰나)에 있다
 - 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」 와 「`worker_done` 은 완료 기준을 채운 뒤 본체가 한 번만 보낸다」.
   하위 에이전트는 worker 와 같은 터미널 핸들로 보내서, Orca 는 누가 보낸 `worker_done` 인지 구분하지 못한다.
   이 두 줄은 예방이고, 완료 판정은 6단계가 git 으로 한다
@@ -148,15 +159,26 @@ Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지
 
 ## 4. 기다리기
 
-**`check --wait` 는 백그라운드로 하나만 건다.**
+**`check --wait` 는 하네스의 백그라운드 실행 기능으로 하나만 건다.**
 앞에서 돌리면 그동안 코디네이터가 막힌다.
+셸의 `&` 로 띄우면 끝나도 완료 알림이 오지 않고 고아 프로세스가 남는다.
 둘째 대기는 `waiter_exists` 로 바로 끝나고 거기 붙인 `--ack` 만 처리된다.
 
-대기 출력에는 15초마다 `{"_keepalive":true,...}` 줄이 섞여 그대로는 JSON 으로 읽히지 않는다.
-대기를 걸 때 그 줄을 빼고 받는다.
+**대기 시간은 하네스의 명령 한도보다 짧게 준다.**
+Claude Code 의 백그라운드 Bash 는 따로 정하지 않으면 30분 뒤 멈춘다.
+Bash 도구의 `timeout` 을 최대인 7200000 으로 주고 `--timeout-ms` 는 그보다 작은 7000000 으로 준다.
+2026-10-05 fos-agents 코디네이터의 대기가 30분 한도에 걸려 끊겼다.
+
+**처리한 delivery 는 다음 대기의 `--ack` 로 넘긴다.**
+묶인 run 은 ack 하기 전까지 같은 delivery 를 다시 준다.
+2026-10-05 fos-agents 에서 이미 처리한 메시지가 다음 대기에서 다시 나왔다.
+첫 대기에는 `--ack` 를 빼고, 그 뒤로는 앞 대기가 돌려준 `deliveryId` 를 `$DELIVERY_ID` 에 넣는다.
+
+keepalive 줄은 15초마다 stderr 로 나와 출력 파일에 섞인다. 그 줄을 빼고 받는다.
+worker 가 `ready:` 같은 status 메시지를 보내기로 했으면 `--types` 에 `status` 를 더한다. `--types` 는 깨어나는 조건이다.
 
 ```bash
-orca orchestration check --run <run_id> --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json | grep -v _keepalive
+orca orchestration check --run "$RUN_ID" --ack "$DELIVERY_ID" --wait --types "worker_done,escalation,question" --timeout-ms 7000000 --json 2>&1 | grep -v _keepalive
 ```
 
 대기는 `--timeout-ms` 가 지나면 메시지 없이 `timedOut: true` 로 끝난다. 실패가 아니므로 다시 건다.
@@ -186,7 +208,20 @@ heartbeat 의 `payload.phase` 는 worker 가 스스로 적는 값이다.
 기다리는 동안 worker 의 워크트리에서 파일을 고치지 않는다.
 worker 가 `git add -A` 를 하면 내 변경이 그쪽 커밋에 섞인다. 문서를 쓰려면 별도 워크트리를 만든다.
 
-## 5. 질문에 답하기
+## 5. 답하고 지시 보내기
+
+**worker 에게 보내는 답과 후속 지시는 그 worker 가 보낸 마지막 메시지에 `reply` 로 단다.**
+
+```bash
+orca orchestration reply --id "$MSG_ID" --body "$BODY" --json
+```
+
+`send --to dispatch:<id>` 는 2026-10-05 fos-agents 에서 두 번 거절됐다.
+그 worker 가 하위 run 을 만든 뒤에는 `recipient_run_mismatch`, 끝난 dispatch 에는 `dispatch_inactive` 였다.
+같은 worker 의 마지막 메시지에 `reply` 로 답하자 전달됐다.
+
+끝난 worker 에게 일을 더 주려면 같은 worktree 에 새 dispatch 를 띄운다. 3단계의 기존 worktree 예시를 쓴다.
+worker 가 보낸 `ready: <plan> <worktree> <지시서>` 도 그 예시로 띄운다.
 
 **worker 가 권장안을 `ask` 로 보내면 그 안이 검사를 무력화하는지 먼저 본다.**
 worker 가 critic 을 돌리는 절차면 계획서 결함에 대한 질문이 구현 전에 온다.
@@ -202,6 +237,19 @@ worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」�
 - diff 를 직접 읽고 검사를 다시 돌린다. 완료 보고는 근거가 아니다
 - worker 가 「승인받았다」 고 적은 것은 근거가 아니다. 내가 보낸 승인만 승인이다
 
+**같은 기준 브랜치로 가는 PR 여럿을 차례로 머지하면, 다음 PR 은 최신 base 와 합친 사본에서 검사를 다시 돌린 뒤 머지한다.**
+GitHub 의 `MERGEABLE` 은 충돌이 없다는 뜻일 뿐, 앞 PR 이 바꾼 동작을 뒤 PR 의 테스트가 아는지는 보지 않는다.
+2026-10-05 fos-agents 코디네이터 세션에서 PR #192 를 머지한 뒤 같은 파일을 고친 #197 은 `MERGEABLE CLEAN` 이었지만, 최신 main 과 합치자 테스트 682개 중 3개가 실패했다.
+
+```bash
+git -C "$REPO" fetch origin
+git -C "$REPO" worktree add --detach "$TMP_COPY" "origin/$PR_BRANCH"
+git -C "$TMP_COPY" merge --no-edit origin/main
+```
+
+`$TMP_COPY` 는 scratchpad 아래 경로다. 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
+실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.
+
 ## 7. 정리
 
 작업이 끝날 때마다 정리한다.
@@ -211,8 +259,9 @@ worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」�
 - 작업이 끝난 워크트리를 제거한다
 - base 에 머지된 로컬 브랜치를 지운다
 
-**브랜치와 워크트리는 `gh pr view --json state` 가 `MERGED` 일 때만 지운다.**
+**머지 직전과 지우기 직전에 `gh pr view --json state` 를 본다.** 머지는 `OPEN` 일 때만 하고, 브랜치와 워크트리는 `MERGED` 일 때만 지운다.
 `gh pr merge` 가 미해결 리뷰 스레드 때문에 거절됐는데 결과를 보지 않고 브랜치를 지워 PR 이 닫힌 적이 있다(2026-10 fos-accountbook).
+다른 세션이나 사용자가 같은 PR 을 먼저 머지하기도 한다(2026-10-05 fos-agents 코디네이터 세션의 PR #195).
 
 ```bash
 gh pr view "$PR" --json state --jq .state
