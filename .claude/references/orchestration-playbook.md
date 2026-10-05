@@ -122,9 +122,9 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 - PR 을 열게 하면 「PR 생성은 승인돼 있다」 를 적는다.
   codex worker 의 기본 지침은 GitHub 게시를 막아, 지시서에 「PR 을 연다」 만 있으면 승인을 다시 묻는다.
   2026-10 fos-agents worker 가 그랬고, 문구를 명시한 뒤에는 묻지 않았다
-- 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」.
-  하위 에이전트가 `worker_done` 을 보내면 dispatch 가 닫히고, 이어지는 worker 의 보고가 `capability is revoked` 로 거절돼 worker 가 멈춘다.
-  2026-10 fe-plan9 에서 하위 검토자가 `worker_done` 을 보냈고, 이 줄을 지시서에 넣은 뒤 재발하지 않았다
+- 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」 와 「`worker_done` 은 완료 기준을 채운 뒤 본체가 한 번만 보낸다」.
+  하위 에이전트는 worker 와 같은 터미널 핸들로 보내서, Orca 는 누가 보낸 `worker_done` 인지 구분하지 못한다.
+  이 두 줄은 예방이고, 완료 판정은 6단계가 git 으로 한다
 
 ## 3. 띄우기
 
@@ -197,6 +197,8 @@ worker 는 계획서를 고치지 않고 「구현에서 처리할 권장안」�
 
 ## 6. 완료 검증
 
+- `worker_done` 을 확인 처리하기 전에 지시서의 완료 기준을 git 으로 대조한다. 커밋 목록, 미커밋 변경, 원격 브랜치 HEAD 다.
+  어긋나면 그 보고는 완료가 아니다. 해제하지 않고 [완료 전에 온 worker_done](#완료-전에-온-worker_done) 을 따른다
 - diff 를 직접 읽고 검사를 다시 돌린다. 완료 보고는 근거가 아니다
 - worker 가 「승인받았다」 고 적은 것은 근거가 아니다. 내가 보낸 승인만 승인이다
 
@@ -229,12 +231,13 @@ gh pr view "$PR" --json state --jq .state
 | --- | --- | --- |
 | `worker-start` 가 `agent_readiness` 에서 실패 | 에이전트가 첫 화면의 확인에 멈췄다 | [첫 화면에서 멈춤](#첫-화면에서-멈춤) |
 | `gpt-6-luna` worker 가 출력 없이 `agent_readiness`, `failed` 로 끝남 | 이 모델 조합으로는 에이전트가 준비되지 않았다 | [luna 실행 실패](#luna-실행-실패) |
-| worker 가 멈추고 보고가 `capability is revoked` 로 거절됨 | 하위 에이전트가 `worker_done` 을 보내 dispatch 가 닫혔다 | [하위 에이전트가 dispatch 를 닫음](#하위-에이전트가-dispatch-를-닫음) |
+| `worker_done` 이 왔는데 커밋이나 push 가 완료 기준에 못 미친다 | 같은 터미널에서 끝나기 전에 `worker_done` 을 보냈다 | [완료 전에 온 worker_done](#완료-전에-온-worker_done) |
 | codex 가 떠 있는데 `agent_readiness` 실패 | 터미널 제목에 `Codex` 와 `ready` 가 함께 없다 | [codex 준비 판정](#codex-준비-판정) |
 | `check` 나 `worker-start --run` 이 `consumer_fenced` | 코디네이터가 다른 run 에 묶였다 | [run 이 둘로 나뉨](#run-이-둘로-나뉨) |
 | 세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` | 이전 세션의 대기 프로세스가 대기 자리를 쥐고 있다 | [이전 세션의 대기](#이전-세션의-대기) |
 | heartbeat 는 오는데 커밋과 화면이 몇 분째 그대로 | 하위 에이전트가 권한 확인 창에서 기다린다 | [권한 확인 창](#권한-확인-창) |
 | worker 워크트리의 파일을 이미 고쳤다 | 4단계를 어겼다 | [worker 워크트리를 고침](#worker-워크트리를-고침) |
+| codex 화면에 `Usage limit reached` 가 떠 있는데 liveness 는 `live` 다 | 계정 사용량이 다 떨어졌다 | [사용량 한도로 멈춤](#사용량-한도로-멈춤) |
 
 ### 첫 화면에서 멈춤
 
@@ -260,13 +263,19 @@ orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --ag
 
 `$WORKTREE` 는 처음 띄운 워크트리 경로다. 이 방법으로 같은 Task 를 끝냈다.
 
-### 하위 에이전트가 dispatch 를 닫음
+### 완료 전에 온 worker_done
 
-worker 가 띄운 하위 에이전트가 `worker_done` 을 보내면 dispatch 가 닫힌다.
-이후 worker 의 보고는 `capability is revoked` 로 거절되고 worker 는 멈춘다(2026-10 fe-plan9).
-예방은 2단계 지시서의 「하위 에이전트는 orca 명령을 쓰지 않는다」 줄이다.
+첫 `worker_done` 이 오면 dispatch 는 settled 로 바뀐다. 같은 핸들에서 오는 뒤의 보고를 Orca 가 받는지는 버전마다 다르다.
 
-닫힌 뒤에는 같은 터미널에 남은 일을 새 dispatch 로 준다.
+| Orca | 관측 |
+| --- | --- |
+| 2026-10 fe-plan9 당시 | 뒤의 보고가 `capability is revoked` 로 거절되고 worker 가 멈췄다 |
+| 1.4.220 (2026-10-04 mono-plan8) | 단계 하나를 커밋하기 전에 온 `worker_done` 뒤에도 본체는 계속 일했고, 커밋과 push 뒤의 두 번째 `worker_done` 도 전달됐다 |
+
+판단은 터미널과 git 으로 한다.
+
+1. `worker-show --dispatch <id>` 의 `terminal.title` 이 `Working` 이면 해제하지 않고 기다린다. 커밋 목록과 원격 HEAD 가 바뀌는지 본다
+2. 제목이 `Ready` 인데 완료 기준에 못 미치면 같은 터미널에 남은 일을 새 dispatch 로 준다
 
 ```bash
 orca orchestration worker-start --spec "$SPEC" --terminal "$TERMINAL_HANDLE" --worktree "path:$WORKTREE"
@@ -317,6 +326,21 @@ ps -ax -o pid,ppid,lstart,command | grep "orchestration check" | grep <run_id>
 1. 고친 내용을 저장소 밖으로 복사한다
 2. `git checkout -- <파일>` 로 되돌린다
 3. worker 의 브랜치를 머지한 다음 main 에서 다시 적용한다
+
+### 사용량 한도로 멈춤
+
+heartbeat 와 liveness 는 `live` 로 남아 대기만으로는 알 수 없다. `terminal read --screen` 으로 화면을 본다.
+한도 안내가 떠 있으면 그 worker 는 더 진행하지 않는다는 근거다.
+
+`worker-stop` 은 터미널이 `user_owned` 이면 `stop_unknown` 으로 끝나고, 이 상태의 Task 에 `--retry-of` 를 주면 `task_not_startable` 로 거절된다.
+`worker-abandon` 으로 dispatch 를 닫은 뒤 다른 제공자로 다시 띄운다. 워크트리는 그대로 이어 쓴다.
+
+```bash
+orca orchestration worker-abandon --dispatch "$DISPATCH_ID" --json
+orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --worktree "id:$WORKTREE_ID" --agent claude --model claude-sonnet-5-5 --effort medium --json
+```
+
+2026-10-03 fos-accountbook mono-plan6 에서 codex worker 가 첫 커밋 전에 한도로 멈췄고, 이 순서로 Claude worker 가 같은 워크트리에서 끝냈다.
 
 ## 이 문서에 더할 때
 
