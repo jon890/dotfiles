@@ -23,7 +23,8 @@ worker 가 띄우면 `nested_worker_depth_exceeded` 로 거절되고, 새 run �
 그래서 worker 에게 나눈 일을 맡길 때는 계획서 작성과 검토, worktree 준비까지만 맡긴다.
 worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절대경로>` 를 status 메시지로 보내고, 코디네이터가 그 worktree 에 띄운다.
 
-위임한 결과를 머지하거나 PR 을 만들 때는 사용자의 확인을 받는다.
+**PR 생성과 머지는 사용자가 미리 허락한 범위에서만 worker 에게 맡긴다.**
+허락받은 범위는 2단계 지시서에 그 문구로 적는다. 적지 않은 것은 worker 가 하지 않고, 코디네이터가 사용자에게 확인받은 뒤 한다.
 
 ## 단계
 
@@ -31,13 +32,14 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 | --- | --- | --- |
 | 1 | 에이전트 고르기 | 에이전트, 모델, effort 와 고른 이유가 dispatch 보고에 한 줄로 있다 |
 | 2 | 지시서 쓰기 | 지시 본문이 파일에 있고 `--spec` 에는 그 경로만 있다 |
-| 3 | 띄우기 | `launch.effective` 가 고른 값과 같고, 대상 저장소 `git status` 에 `worktrees/` 가 없다 |
+| 3 | 띄우기 | `worker-start` 가 종료 코드 0 으로 끝났고, `launch.effective` 가 고른 값과 같고, 대상 저장소 `git status` 에 `worktrees/` 가 없다 |
 | 4 | 기다리기 | 이 세션의 백그라운드 `check --wait` 가 하나만 돌고, 앞 대기가 돌려준 `deliveryId` 를 `--ack` 로 넘겼다 |
 | 5 | 답하고 지시 보내기 | 답과 지시를 worker 의 마지막 메시지에 `reply` 로 보냈고, 그 답이 검사를 무력화하지 않는다 |
 | 6 | 완료 검증 | diff 를 직접 읽었고 검사를 다시 돌려 통과했다. 앞 PR 이 머지된 뒤라면 최신 base 와 합친 사본에서 통과했다 |
 | 7 | 정리 | 끝난 dispatch 와 워크트리, 머지된 로컬 브랜치가 없다 |
 
-응답이 예상과 다르면 [자주 나는 오류](#자주-나는-오류)에서 증상으로 찾는다.
+각 단계에서 생기는 오류와 대응은 그 단계 절에 있다.
+어느 단계에서 생겼는지 모르는 증상만 [자주 나는 오류](#자주-나는-오류)에서 찾는다.
 
 ## 1. 에이전트 고르기
 
@@ -69,6 +71,7 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 | Claude Fable 5.1 | Opus 5.5 의 `xhigh`, `max` 로도 부족한 추론 | `high` | 10 / 50 | Slower |
 | Claude Haiku 4.5 | 실시간, 대량 처리, 서브에이전트 | 미지원 | 1 / 5 | Fastest |
 
+- `gpt-6-luna` 는 2026-10 worker 시작에 실패한 적이 있다. 실패하면 3단계의 [luna 실행 실패](#luna-실행-실패) 대로 다른 모델로 다시 띄운다
 - `gpt-6-astra` 와 Claude Fable 5.1 은 다른 후보가 같은 Task 에서 실패했을 때만 검토한다
 - 확인하지 못한 effort 별 코딩 점수는 선택 근거에서 뺐다. 제공자 사이의 점수도 직접 비교하지 않는다
 - 공식 effort 별 지연과 비용 배수는 양쪽 모두 확인 못 함
@@ -147,6 +150,26 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 2026-09-30 fos-assistant 워크트리가 origin/main 보다 125커밋 뒤에서 시작했고, worker 가 계획 도중에 알아챘다.
 띄우기 전에 `git -C <repo> fetch origin` 으로 원격을 갱신하고, main 이 깨끗하면 `git -C <repo> merge --ff-only origin/main` 으로 로컬 main 도 맞춘다.
 
+codex 를 띄우기 전에 [codex 준비 판정](#codex-준비-판정)의 설정이 있는지 본다.
+
+**`--spec` 에는 지시서 경로를 담은 한 줄만 준다.** 새 worktree 를 만들 때는 `--name` 이 필수다.
+`$SPEC_FILE` 은 2단계의 지시서 경로, `$NAME` 은 새 worktree 이름, `$REPO` 는 대상 저장소 경로다.
+
+```bash
+SPEC_LINE="지시서 $SPEC_FILE 를 끝까지 읽고 수행한다. 못 읽으면 escalation 으로 알린다."
+orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" \
+  --worktree new-top-level --name "$NAME" --repo "path:$REPO" --base-branch origin/main \
+  --agent codex --model gpt-6.1-sol --effort low --json
+```
+
+이미 있는 worktree 에 띄울 때는 `--worktree path:` 만 준다. 5단계의 후속 일과 worker 가 보낸 `ready:` 가 여기 해당한다.
+`--name`, `--repo`, `--base-branch` 는 이때 거절된다.
+
+```bash
+orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "path:$WORKTREE" \
+  --agent claude --model claude-sonnet-5-5 --effort medium --json
+```
+
 띄운 직후 두 가지를 확인한다.
 
 - `worker-start` 응답의 `launch.effective` 가 1단계에서 고른 모델, effort 와 같다
@@ -156,6 +179,44 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
 그 경로가 ignore 되지 않아, main 에서 `git add -A` 를 하면 워크트리가 커밋될 수 있다.
 보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
 Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지 않는다.
+
+`worker-start` 가 0 이 아닌 코드로 끝나면 새로 띄우지 않고 아래 절에서 원인을 찾는다.
+
+### codex 준비 판정
+
+Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 아래 두 줄을 둔다.
+
+```toml
+terminal_title = ["app-name", "run-state", "project-name"]
+check_for_update_on_startup = false
+```
+
+이 설정이 없으면 codex 가 떠 있어도 터미널 제목에 `Codex` 와 `ready` 가 함께 나오지 않아 `agent_readiness` 에서 실패한다.
+둘째 줄은 시작할 때 업데이트 안내로 빠지지 않게 한다.
+
+### 첫 화면에서 멈춤
+
+원인은 `worker-show --dispatch <id>` 의 `lastFailure` 에 나온다.
+실측한 것은 claude 의 폴더 신뢰 확인, codex 의 업데이트 안내(`agent-update-prompt`)와 hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
+
+터미널과 워크트리는 이미 만들어져 있으므로 새로 띄우지 않고 이어 붙인다.
+
+1. `terminal read` 로 화면을 본다. 신뢰나 업데이트를 대신 승인하지 않는다.
+   건너뛰는 선택지를 고르고 사용자에게 알린다
+2. `terminal wait --for tui-idle` 로 입력 대기 상태를 확인한다
+3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
+   `--model` 은 줄 수 없지만 처음 띄울 때 준 모델이 그 터미널에 남아 있다
+
+### luna 실행 실패
+
+2026-10 `--model gpt-6-luna --effort high` worker 가 `stage.detail: agent_readiness`, `outcome: failed` 로 아무 출력 없이 끝났다.
+같은 Task 를 다른 모델로 다시 띄운다. `--retry-of` 는 `--spec` 이 아니라 `--task` 와 함께 쓴다.
+
+```bash
+orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --agent codex --model gpt-6.1-sol --effort low --worktree "path:$WORKTREE"
+```
+
+`$WORKTREE` 는 처음 띄운 워크트리 경로다. 이 방법으로 같은 Task 를 끝냈다.
 
 ## 4. 기다리기
 
@@ -186,6 +247,7 @@ orca orchestration check --run "$RUN_ID" --ack "$DELIVERY_ID" --wait --types "wo
 백그라운드 대기가 종료 코드 144 로 끝난 것처럼 보여도 Orca CLI 프로세스가 살아 있을 수 있다.
 그 프로세스가 대기 자리를 쥐고 있으면 새로 건 대기가 `waiter_exists` 로 바로 끝난다.
 찾아서 종료한 뒤 다시 건다. 이 세션이 건 프로세스이므로 다른 run 의 것과 구분해서 종료한다.
+세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` 면 [이전 세션의 대기](#이전-세션의-대기)를 따른다.
 
 ```bash
 ps -eo pid,command | grep "orchestration check --wait" | grep -v grep
@@ -207,6 +269,26 @@ heartbeat 의 `payload.phase` 는 worker 가 스스로 적는 값이다.
 
 기다리는 동안 worker 의 워크트리에서 파일을 고치지 않는다.
 worker 가 `git add -A` 를 하면 내 변경이 그쪽 커밋에 섞인다. 문서를 쓰려면 별도 워크트리를 만든다.
+이미 고쳤으면 [worker 워크트리를 고침](#worker-워크트리를-고침)을 따른다.
+
+### 이전 세션의 대기
+
+이전 세션의 백그라운드 `check --wait` 는 세션이 끝나도 부모 없는 프로세스로 남는다.
+그 대기가 받은 메시지는 아무에게도 전달되지 않는다.
+
+```bash
+ps -ax -o pid,ppid,lstart,command | grep "orchestration check" | grep "$RUN_ID"
+```
+
+부모 PID 가 1 이고 시작 시각이 이 세션보다 앞선 것이 그것이다.
+그 프로세스와 부모 셸을 `kill` 하고 대기를 다시 건다.
+다른 run 의 대기는 다른 세션의 것이므로 건드리지 않는다.
+
+### worker 워크트리를 고침
+
+1. 고친 내용을 저장소 밖으로 복사한다
+2. `git checkout -- <파일>` 로 되돌린다
+3. worker 의 브랜치를 머지한 다음 main 에서 다시 적용한다
 
 ## 5. 답하고 지시 보내기
 
@@ -250,6 +332,26 @@ git -C "$TMP_COPY" merge --no-edit origin/main
 `$TMP_COPY` 는 scratchpad 아래 경로다. 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
 실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.
 
+### 완료 전에 온 worker_done
+
+첫 `worker_done` 이 오면 dispatch 는 settled 로 바뀐다. 같은 핸들에서 오는 뒤의 보고를 Orca 가 받는지는 버전마다 다르다.
+
+| Orca | 관측 |
+| --- | --- |
+| 2026-10 fe-plan9 당시 | 뒤의 보고가 `capability is revoked` 로 거절되고 worker 가 멈췄다 |
+| 1.4.220 (2026-10-04 mono-plan8) | 단계 하나를 커밋하기 전에 온 `worker_done` 뒤에도 본체는 계속 일했고, 커밋과 push 뒤의 두 번째 `worker_done` 도 전달됐다 |
+
+판단은 터미널과 git 으로 한다.
+
+1. `worker-show --dispatch <id>` 의 `terminal.title` 이 `Working` 이면 해제하지 않고 기다린다. 커밋 목록과 원격 HEAD 가 바뀌는지 본다
+2. 제목이 `Ready` 인데 완료 기준에 못 미치면 같은 터미널에 남은 일을 새 dispatch 로 준다
+
+```bash
+orca orchestration worker-start --spec "$SPEC_LINE" --terminal "$TERMINAL_HANDLE" --worktree "path:$WORKTREE"
+```
+
+`$SPEC_LINE` 은 남은 일만 적은 지시서의 경로를 담은 한 줄이다. 형식은 3단계 예시와 같다.
+
 ## 7. 정리
 
 작업이 끝날 때마다 정리한다.
@@ -276,72 +378,13 @@ gh pr view "$PR" --json state --jq .state
 
 ## 자주 나는 오류
 
+단계 절차 중에 생기지 않고 증상이 먼저 보이는 것만 둔다.
+
 | 증상 | 원인 | 대응 |
 | --- | --- | --- |
-| `worker-start` 가 `agent_readiness` 에서 실패 | 에이전트가 첫 화면의 확인에 멈췄다 | [첫 화면에서 멈춤](#첫-화면에서-멈춤) |
-| `gpt-6-luna` worker 가 출력 없이 `agent_readiness`, `failed` 로 끝남 | 이 모델 조합으로는 에이전트가 준비되지 않았다 | [luna 실행 실패](#luna-실행-실패) |
-| `worker_done` 이 왔는데 커밋이나 push 가 완료 기준에 못 미친다 | 같은 터미널에서 끝나기 전에 `worker_done` 을 보냈다 | [완료 전에 온 worker_done](#완료-전에-온-worker_done) |
-| codex 가 떠 있는데 `agent_readiness` 실패 | 터미널 제목에 `Codex` 와 `ready` 가 함께 없다 | [codex 준비 판정](#codex-준비-판정) |
 | `check` 나 `worker-start --run` 이 `consumer_fenced` | 코디네이터가 다른 run 에 묶였다 | [run 이 둘로 나뉨](#run-이-둘로-나뉨) |
-| 세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` | 이전 세션의 대기 프로세스가 대기 자리를 쥐고 있다 | [이전 세션의 대기](#이전-세션의-대기) |
 | heartbeat 는 오는데 커밋과 화면이 몇 분째 그대로 | 하위 에이전트가 권한 확인 창에서 기다린다 | [권한 확인 창](#권한-확인-창) |
-| worker 워크트리의 파일을 이미 고쳤다 | 4단계를 어겼다 | [worker 워크트리를 고침](#worker-워크트리를-고침) |
 | codex 화면에 `Usage limit reached` 가 떠 있는데 liveness 는 `live` 다 | 계정 사용량이 다 떨어졌다 | [사용량 한도로 멈춤](#사용량-한도로-멈춤) |
-
-### 첫 화면에서 멈춤
-
-원인은 `worker-show --dispatch <id>` 의 `lastFailure` 에 나온다.
-실측한 것은 claude 의 폴더 신뢰 확인, codex 의 업데이트 안내(`agent-update-prompt`)와 hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
-
-터미널과 워크트리는 이미 만들어져 있으므로 새로 띄우지 않고 이어 붙인다.
-
-1. `terminal read` 로 화면을 본다. 신뢰나 업데이트를 대신 승인하지 않는다.
-   건너뛰는 선택지를 고르고 사용자에게 알린다
-2. `terminal wait --for tui-idle` 로 입력 대기 상태를 확인한다
-3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
-   `--model` 은 줄 수 없지만 처음 띄울 때 준 모델이 그 터미널에 남아 있다
-
-### luna 실행 실패
-
-2026-10 `--model gpt-6-luna --effort high` worker 가 `stage.detail: agent_readiness`, `outcome: failed` 로 아무 출력 없이 끝났다.
-같은 Task 를 다른 모델로 다시 띄운다. `--retry-of` 는 `--spec` 이 아니라 `--task` 와 함께 쓴다.
-
-```bash
-orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --agent codex --model gpt-6.1-sol --effort low --worktree "path:$WORKTREE"
-```
-
-`$WORKTREE` 는 처음 띄운 워크트리 경로다. 이 방법으로 같은 Task 를 끝냈다.
-
-### 완료 전에 온 worker_done
-
-첫 `worker_done` 이 오면 dispatch 는 settled 로 바뀐다. 같은 핸들에서 오는 뒤의 보고를 Orca 가 받는지는 버전마다 다르다.
-
-| Orca | 관측 |
-| --- | --- |
-| 2026-10 fe-plan9 당시 | 뒤의 보고가 `capability is revoked` 로 거절되고 worker 가 멈췄다 |
-| 1.4.220 (2026-10-04 mono-plan8) | 단계 하나를 커밋하기 전에 온 `worker_done` 뒤에도 본체는 계속 일했고, 커밋과 push 뒤의 두 번째 `worker_done` 도 전달됐다 |
-
-판단은 터미널과 git 으로 한다.
-
-1. `worker-show --dispatch <id>` 의 `terminal.title` 이 `Working` 이면 해제하지 않고 기다린다. 커밋 목록과 원격 HEAD 가 바뀌는지 본다
-2. 제목이 `Ready` 인데 완료 기준에 못 미치면 같은 터미널에 남은 일을 새 dispatch 로 준다
-
-```bash
-orca orchestration worker-start --spec "$SPEC" --terminal "$TERMINAL_HANDLE" --worktree "path:$WORKTREE"
-```
-
-`$SPEC` 은 남은 일만 적은 지시서 파일이다.
-
-### codex 준비 판정
-
-Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 아래 두 줄을 둔다.
-
-```toml
-terminal_title = ["app-name", "run-state", "project-name"]
-check_for_update_on_startup = false
-```
-
-둘째 줄은 시작할 때 업데이트 안내로 빠지지 않게 한다.
 
 ### run 이 둘로 나뉨
 
@@ -351,30 +394,11 @@ A 에 걸어 둔 `check --wait` 는 A 의 완료 메시지를 받지 못했다.
 `orca orchestration run-use --id <run_id>` 로 옮겨 붙은 뒤 메시지를 읽는다.
 상태만 볼 때는 fenced 상태에서도 `worker-list --run <run_id>` 가 동작한다.
 
-### 이전 세션의 대기
-
-이전 세션의 백그라운드 `check --wait` 는 세션이 끝나도 부모 없는 프로세스로 남는다.
-그 대기가 받은 메시지는 아무에게도 전달되지 않는다.
-
-```bash
-ps -ax -o pid,ppid,lstart,command | grep "orchestration check" | grep <run_id>
-```
-
-부모 PID 가 1 이고 시작 시각이 이 세션보다 앞선 것이 그것이다.
-그 프로세스와 부모 셸을 `kill` 하고 대기를 다시 건다.
-다른 run 의 대기는 다른 세션의 것이므로 건드리지 않는다.
-
 ### 권한 확인 창
 
 `terminal read --screen` 으로 화면을 본다.
 하위 에이전트가 `;` 로 이은 긴 셸을 쓰면 `Parse error` 로 자동 승인되지 않고 `Do you want to proceed?` 에서 기다린다.
 명령이 무엇을 하는지 읽고, 영향이 worker 자신의 임시 디렉터리 안이면 승인하고 사용자에게 알린다. 아니면 사용자에게 묻는다.
-
-### worker 워크트리를 고침
-
-1. 고친 내용을 저장소 밖으로 복사한다
-2. `git checkout -- <파일>` 로 되돌린다
-3. worker 의 브랜치를 머지한 다음 main 에서 다시 적용한다
 
 ### 사용량 한도로 멈춤
 
@@ -395,5 +419,7 @@ orca orchestration worker-start --task "$TASK_ID" --retry-of "$DISPATCH_ID" --wo
 
 - 오류 없이 잘못된 결과가 완료로 보고되는 곳과, 멈춘 원인이 바로 보이지 않는 곳만 적는다
 - CLI 가 인자 오류로 거절하는 것은 적지 않는다. 거절 메시지가 이유를 알려준다
-- 끝에 새 절을 붙이지 않는다. 그 일이 일어나는 단계 절에 넣거나, 증상이 먼저 보이는 것이면 「자주 나는 오류」 표에 한 줄과 절 하나를 더한다
+- 그 일이 일어나는 단계 절의 절차 안에 넣는다. 처음 따라 하는 세션이 그 단계에서 만나야 예방된다
+- 회복 절차가 길면 그 단계 절 아래 `###` 절로 둔다
+- 「자주 나는 오류」 표에는 어느 단계에서 생겼는지 모른 채 증상만 보이는 것만 더한다
 - 실측 근거는 날짜와 대상, 관측한 결과를 한 줄로 적는다
