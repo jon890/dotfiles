@@ -57,6 +57,9 @@ Orca 는 `~/.claude/bin/tmux` shim 으로 그것을 대신하는데, PATH 앞에
 브라우저 작업은 `browser-driver` 를 쓴다.
 명령 목록은 `browser-driver help` 가, 백엔드 설정과 백엔드별 함정은 그 드라이버의 README 가 소유한다.
 
+개인 서비스(`*.fosworld.co.kr`, 개인 Google 계정으로 로그인하는 사이트)는 `BROWSER_EGO_PURPOSE=personal` 로 연다.
+기본 프로필은 회사 프로필이라 개인 서비스의 로그인 세션이 없다.
+
 ## 셸
 
 zsh 와 이 머신 환경에서 실측한 것이다.
