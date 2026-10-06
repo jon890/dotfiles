@@ -73,6 +73,22 @@ class HookPayloadTests(unittest.TestCase):
                 })
                 self.assertEqual(output is not None, denied)
 
+    def test_quoted_text_is_not_split_into_commands(self):
+        for command in (
+            'git commit -q -m "feat: 설명\n\ngit worktree add 로 만든 워크트리는 숨는다"',
+            "git commit -m 'a; git worktree add outside'",
+            'echo "x | git worktree add outside"',
+        ):
+            with self.subTest(command=command):
+                self.assertIsNone(self.run_hook({"cwd": str(self.repo), "tool_input": {"command": command}}))
+
+    def test_unquoted_separators_still_split(self):
+        for command in ("pwd\ngit worktree add outside", "pwd && git worktree add outside",
+                        'echo "a;b"; git worktree add outside'):
+            with self.subTest(command=command):
+                output = self.run_hook({"cwd": str(self.repo), "tool_input": {"command": command}})
+                self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+
     def test_malformed_json_is_ignored(self):
         result = subprocess.run([sys.executable, str(GUARD)], input="{", text=True, capture_output=True)
         self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "", ""))

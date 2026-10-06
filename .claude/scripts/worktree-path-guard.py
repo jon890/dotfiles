@@ -19,7 +19,7 @@ import shlex
 import subprocess
 import sys
 
-SEGMENT_SPLIT = re.compile(r"&&|\|\||;|\n|\|")
+SEPARATORS = (";", "\n", "&&", "||", "|")
 # `add` 와 `move` 에서 값을 하나 받는 옵션이다. 이 값은 경로가 아니다.
 OPTIONS_WITH_VALUE = {"-b", "-B", "--reason"}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
@@ -40,6 +40,49 @@ def expand(text: str, assigned: dict[str, str]) -> tuple[str, set[str]]:
         return match.group(0)
 
     return VARIABLE.sub(replace, text), missing
+
+
+def split_segments(command: str) -> list[str]:
+    """따옴표 밖의 `;`, 줄바꿈, `&&`, `||`, `|` 에서만 명령을 나눈다.
+
+    따옴표 안까지 나누면 `git commit -m "...git worktree add x..."` 처럼 메시지 본문의 줄을
+    명령으로 읽어 커밋을 거절한다.
+    """
+    segments: list[str] = []
+    current: list[str] = []
+    quote = ""
+    i = 0
+    while i < len(command):
+        char = command[i]
+        if quote:
+            if char == "\\" and quote == '"' and i + 1 < len(command):
+                current.append(command[i:i + 2])
+                i += 2
+                continue
+            if char == quote:
+                quote = ""
+            current.append(char)
+            i += 1
+            continue
+        if char == "\\" and i + 1 < len(command):
+            current.append(command[i:i + 2])
+            i += 2
+            continue
+        if char in ("'", '"'):
+            quote = char
+            current.append(char)
+            i += 1
+            continue
+        separator = next((s for s in SEPARATORS if command.startswith(s, i)), None)
+        if separator:
+            segments.append("".join(current))
+            current = []
+            i += len(separator)
+            continue
+        current.append(char)
+        i += 1
+    segments.append("".join(current))
+    return segments
 
 
 def main_repo_root(directory: str) -> str | None:
@@ -98,7 +141,7 @@ def judge(command: str, cwd: str) -> str | None:
     # 같은 명령 안에서 `D=/경로; git worktree add $D/이름` 처럼 대입한 변수를 풀어 본다.
     # 풀지 않으면 `$D/이름` 을 글자 그대로 경로로 읽어 올바른 자리도 거절한다(2026-10-02 실측).
     assigned: dict[str, str] = {}
-    for segment in SEGMENT_SPLIT.split(command):
+    for segment in split_segments(command):
         try:
             tokens = shlex.split(segment)
         except ValueError:
