@@ -64,3 +64,7 @@ if (( ${+commands[zoxide]} )); then
   alias cdi="zi"
 fi
 
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
