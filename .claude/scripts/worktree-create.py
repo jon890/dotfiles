@@ -5,10 +5,15 @@ Claude Code 는 `--worktree`, 하위 에이전트의 `isolation: "worktree"` 로
 기본으로 `<저장소>/.claude/worktrees/<이름>` 을 쓰고, 이 자리를 바꾸는 설정 키는 없다.
 `WorktreeCreate` 훅만 그 동작을 대신할 수 있다(https://code.claude.com/docs/en/worktrees.md).
 
-이 훅은 Orca 규칙인 `<저장소>/worktrees/<저장소 이름>/<이름>` 에 `worktree-<이름>` 브랜치로 만들고,
-만든 절대경로를 stdout 에 한 줄로 낸다. 기준은 원격 기본 브랜치이고, 없으면 HEAD 다.
-같은 자리에 이미 워크트리가 있으면 그 경로를 그대로 낸다.
-git 출력은 stderr 로 보낸다. stdout 에 경로 외의 것이 섞이면 Claude Code 가 경로를 읽지 못한다.
+이 훅은 Orca 규칙인 `<저장소>/worktrees/<저장소 이름>/<이름>` 에 만들고,
+만든 절대경로를 stdout 에 한 줄로 낸다. 같은 자리에 이미 워크트리가 있으면 그 경로를 그대로 낸다.
+
+먼저 `orca worktree create` 로 만든다. `git worktree add` 로 만든 워크트리는 자리가 같아도
+Orca 가 외부 워크트리로 분류해 사이드바에서 숨긴다(2026-10-02 실측). Orca 가 만들면 브랜치는 `<이름>` 이다.
+`orca` 가 없거나 실패하면 `git worktree add` 로 만든다. 이때 브랜치는 `worktree-<이름>` 이고
+기준은 원격 기본 브랜치, 없으면 HEAD 다.
+
+git 과 orca 의 출력은 stderr 로 보낸다. stdout 에 경로 외의 것이 섞이면 Claude Code 가 경로를 읽지 못한다.
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -25,6 +31,25 @@ def git(*args: str, cwd: str) -> str:
         ["git", *args], cwd=cwd, check=True, text=True,
         stdout=subprocess.PIPE, stderr=sys.stderr,
     ).stdout.strip()
+
+
+def create_with_orca(root: str, name: str, target: str) -> bool:
+    """Orca 로 만들었고 그 자리가 `target` 이면 True 다. 아니면 git 으로 만들도록 False 를 낸다."""
+    if not shutil.which("orca"):
+        return False
+    try:
+        done = subprocess.run(
+            ["orca", "worktree", "create", "--repo", f"path:{root}", "--name", name,
+             "--setup", "skip", "--no-parent", "--json"],
+            cwd=root, text=True, stdout=subprocess.PIPE, stderr=sys.stderr, timeout=45,
+        )
+        created = (json.loads(done.stdout).get("result") or {}).get("worktree") or {}
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return False
+    if done.returncode != 0 or created.get("path") != target:
+        print(f"worktree-create: orca 로 만들지 못해 git 으로 만든다 (path={created.get('path')})", file=sys.stderr)
+        return os.path.isdir(target)
+    return True
 
 
 def main() -> int:
@@ -39,6 +64,10 @@ def main() -> int:
     target = os.path.join(root, "worktrees", os.path.basename(root), name)
 
     if os.path.isdir(target):
+        print(target)
+        return 0
+
+    if create_with_orca(root, name, target):
         print(target)
         return 0
 
