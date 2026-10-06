@@ -22,6 +22,24 @@ import sys
 SEGMENT_SPLIT = re.compile(r"&&|\|\||;|\n|\|")
 # `add` 와 `move` 에서 값을 하나 받는 옵션이다. 이 값은 경로가 아니다.
 OPTIONS_WITH_VALUE = {"-b", "-B", "--reason"}
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+VARIABLE = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
+
+
+def expand(text: str, assigned: dict[str, str]) -> tuple[str, set[str]]:
+    """`$이름`, `${이름}` 을 같은 명령의 대입값과 환경 변수로 푼다. 못 푼 이름을 함께 낸다."""
+    missing: set[str] = set()
+
+    def replace(match: re.Match[str]) -> str:
+        name = match.group(1) or match.group(2)
+        if name in assigned:
+            return assigned[name]
+        if name in os.environ:
+            return os.environ[name]
+        missing.add(name)
+        return match.group(0)
+
+    return VARIABLE.sub(replace, text), missing
 
 
 def main_repo_root(directory: str) -> str | None:
@@ -77,11 +95,24 @@ def worktree_target(tokens: list[str]) -> tuple[str, str | None, str] | None:
 def judge(command: str, cwd: str) -> str | None:
     """자리 밖이면 거절 사유를, 아니면 None 을 낸다."""
     base = cwd
+    # 같은 명령 안에서 `D=/경로; git worktree add $D/이름` 처럼 대입한 변수를 풀어 본다.
+    # 풀지 않으면 `$D/이름` 을 글자 그대로 경로로 읽어 올바른 자리도 거절한다(2026-10-02 실측).
+    assigned: dict[str, str] = {}
     for segment in SEGMENT_SPLIT.split(command):
         try:
             tokens = shlex.split(segment)
         except ValueError:
             continue
+        while tokens and ASSIGNMENT.match(tokens[0]):
+            key, _, value = tokens.pop(0).partition("=")
+            assigned[key] = expand(value, assigned)[0]
+        unresolved: set[str] = set()
+        expanded = []
+        for token in tokens:
+            text, missing = expand(token, assigned)
+            expanded.append(text)
+            unresolved |= missing
+        tokens = expanded
         if not tokens:
             continue
         if tokens[0] == "cd" and len(tokens) > 1:
@@ -91,6 +122,14 @@ def judge(command: str, cwd: str) -> str | None:
         if not found:
             continue
         sub, git_dir, target = found
+        if unresolved and "$" in target:
+            # 값을 알 수 없는 변수가 경로에 남았다. 어디를 가리키는지 판정할 수 없어 경로를 그대로 쓰게 한다.
+            names = ", ".join(sorted(f"${n}" for n in unresolved))
+            return (
+                f"워크트리 경로에 값을 알 수 없는 변수가 있습니다: {target} ({names})\n"
+                "이 점검은 같은 명령 안에서 대입한 변수와 환경 변수만 풉니다. "
+                "변수 대신 경로를 그대로 적어 다시 실행하세요."
+            )
         run_dir = os.path.normpath(os.path.join(base, os.path.expanduser(git_dir))) if git_dir else base
         root = main_repo_root(run_dir)
         if not root:
@@ -115,10 +154,31 @@ def main() -> None:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
         return
-    command = (payload.get("tool_input") or {}).get("command") or ""
-    if "worktree" not in command:
+    if not isinstance(payload, dict):
         return
-    reason = judge(command, payload.get("cwd") or os.getcwd())
+    # 두 런타임의 표준 셸 훅 이름은 Bash 이다. 다른 도구의 본문은 명령이 아니다.
+    if payload.get("hook_event_name", "PreToolUse") != "PreToolUse":
+        return
+    if payload.get("tool_name", "Bash") not in ("Bash", "exec_command", "shell_command"):
+        return
+    tool_input = payload.get("tool_input")
+    if isinstance(tool_input, str):
+        try:
+            tool_input = json.loads(tool_input)
+        except (json.JSONDecodeError, ValueError):
+            # JSON 으로 감싸지 않은 셸 명령도 경로 점검을 거친다.
+            tool_input = {"command": tool_input}
+    if not isinstance(tool_input, dict):
+        return
+    command = tool_input.get("command") or tool_input.get("cmd") or ""
+    if not isinstance(command, str) or "worktree" not in command:
+        return
+    cwd = payload.get("cwd")
+    if cwd is None or cwd == "":
+        cwd = os.getcwd()
+    if not isinstance(cwd, str):
+        return
+    reason = judge(command, cwd)
     if not reason:
         return
     json.dump({
