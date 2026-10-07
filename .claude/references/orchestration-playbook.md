@@ -368,6 +368,10 @@ orca orchestration worker-start --spec "$SPEC_LINE" --terminal "$TERMINAL_HANDLE
 작업이 끝날 때마다 정리한다.
 워크트리와 터미널이 저장소마다 쌓이면 다음 작업이 어느 것을 써야 할지 매번 판단해야 한다.
 
+**PR 을 머지한 직후 같은 흐름에서, 사용자 지시를 기다리지 않고 정리한다.**
+그 PR 의 dispatch 반납, 워커 터미널 닫기, 워크트리 제거, 로컬과 원격 브랜치 삭제까지가 머지의 마지막 단계다.
+같은 워크트리에서 후속 작업을 하는 워커가 있으면 그 워커가 끝날 때까지 남긴다.
+
 - settled 된 dispatch 를 정리한다. 정리 경로와 잔여 확인 방법은 Orca 가이드를 따른다
 - 작업이 끝난 워크트리를 제거한다. `orca worktree rm` 뒤에 `git -C <repo> worktree prune` 을 돌린다.
   디렉터리만 지우고 git 의 워크트리 기록이 남아, 그대로면 브랜치 삭제가 `used by worktree` 로 거절된다
