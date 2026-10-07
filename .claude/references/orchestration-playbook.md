@@ -92,8 +92,6 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 
 높은 effort 는 추가 작업과 비용을 늘릴 수 있다.
 
-- Claude 의 `low` 는 검증을 건너뛸 수 있다. 지시서에 검증 명령을 적으면 거의 사라진다
-- Claude 의 `low`, `medium` 은 긴 작업에서 중간에 확인을 구할 수 있다. 지시서에 「끝까지 진행한다」 를 넣는다
 - Claude 의 `xhigh`, `max` 는 스스로 리뷰 라운드를 돌리고 reviewer subagent 를 띄워 비용이 커진다
 - `high` 이상은 요청하지 않은 변경과 저장소 관례에 맞지 않는 커밋 제목을 낼 수 있다. 계획서가 충분하면 낮은 effort 로 빠르게 끝낸다
 - 출처: [OpenAI reasoning](https://developers.openai.com/api/docs/guides/reasoning), [Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort)
@@ -101,7 +99,7 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 ### Codex 에 넘기는 방법
 
 `~/.codex/config.toml` 의 `model` 은 대화형 codex 의 기본값이라, 그대로 넘기면 모든 Task 가 같은 모델로 돈다.
-`--model` 과 `--effort` 를 함께 넘긴다. effort 만 주면 거절된다.
+`--model` 과 `--effort` 를 함께 넘긴다.
 고를 수 있는 모델과 effort 목록은 아래 명령으로 본다.
 
 ```bash
@@ -161,7 +159,6 @@ orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" \
 
 이미 있는 worktree 에 띄울 때는 `--worktree path:` 만 준다. 5단계의 후속 일과 worker 가 보낸 `ready:` 가 여기 해당한다.
 `--name`, `--repo`, `--base-branch` 는 이때 주지 않는다.
-생성 플래그(`--name`, `--repo`, `--base-branch`, `--display-name`, `--comment`, `--setup`)는 current 나 기존 worktree 에서 거절된다(`worker-start --help`).
 
 ```bash
 orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "path:$WORKTREE" \
@@ -173,7 +170,7 @@ orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "
 - `worker-start` 응답의 `launch.effective` 가 1단계에서 고른 모델, effort 와 같다
 - `git -C <repo> status --short` 에 `worktrees/` 가 없다
 
-`--worktree new-top-level` 은 `<repo>/worktrees/<repo>/<name>` 에 워크트리를 만든다(Orca 1.4.215).
+`--worktree new-top-level` 은 `<repo>/worktrees/<repo>/<name>` 에 워크트리를 만든다.
 그 경로가 ignore 되지 않아, main 에서 `git add -A` 를 하면 워크트리가 커밋될 수 있다.
 `worktrees/` 가 보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
 Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지 않는다.
@@ -182,11 +179,14 @@ Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지
 
 ### codex 준비 판정
 
-Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 의 `[tui]` 에 아래 두 줄을 둔다.
+Orca 가 계정별로 두는 `~/Library/Application Support/orca/codex-accounts/*/home/config.toml` 에 아래 두 키를 둔다.
+`check_for_update_on_startup` 은 첫 절 머리 앞의 최상위 키이고, `terminal_title` 은 `[tui]` 절의 키다.
 
 ```toml
-terminal_title = ["app-name", "run-state", "project-name"]
 check_for_update_on_startup = false
+
+[tui]
+terminal_title = ["app-name", "run-state", "project-name"]
 ```
 
 이 설정이 없으면 codex 가 떠 있어도 터미널 제목에 `Codex` 와 `ready` 가 함께 나오지 않아 `agent_readiness` 에서 실패한다.
@@ -343,7 +343,7 @@ git -C "$TMP_COPY" merge --no-edit origin/main
 ```
 
 `$TMP_COPY` 는 3단계의 worktree 위치 규칙을 따라 `$REPO/worktrees/<repo>/<이름>` 으로 잡는다.
-저장소에 워크트리 위치를 검사하는 hook 이 있으면 scratchpad 같은 다른 경로는 막힌다.
+전역 hook `~/.claude/scripts/worktree-path-guard.py` 가 scratchpad 같은 다른 경로를 막는다.
 PR 브랜치가 이미 지워졌거나 fork 에서 온 PR 이면 `git fetch origin pull/<번호>/head:<로컬 이름>` 으로 받아 `origin/$PR_BRANCH` 자리에 로컬 이름을 쓴다.
 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
 실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.

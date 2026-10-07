@@ -26,6 +26,11 @@ cd ~/.claude/skills && for n in *; do printf '%-24s %s\n' "$n" "$(readlink "$n" 
 `~/.claude/skills/` 에는 개인 공용과 팀 공용을 가리키는 링크를 두지 않는다. 두면 접두사 있는 것과 없는 것 둘로 뜬다.
 `~/.claude/scripts/` 와 `~/.claude/rules/` 의 링크는 스킬 링크가 아니다. 체크아웃 안의 검사기와 규칙 파일을 가리키므로 그대로 둔다.
 
+`~/.claude/skills/` 에는 위 네 층에 들지 않는 것도 있다.
+다른 저장소의 저장소 로컬 스킬을 가리키는 링크는 링크 대상 저장소에서 고친다.
+Orca 가 거는 `../../.agents/skills/` 링크, `ego-browser` 링크, `synced/` 디렉터리는 외부가 관리하므로 고치지 않는다.
+`synced/` 는 실체라 위 명령에서 `(실체)` 로 보이지만 개인 로컬 스킬이 아니다.
+
 ## 개인 공용과 팀 공용의 관계
 
 **`fos-skills` 가 원본이고 팀 저장소의 것은 사본이다.**
@@ -51,7 +56,7 @@ grep -n '^SHARED_' ~/personal/fos-skills/scripts/export-to-team.sh
 `harness-cleanup` 과 `pr-review` 는 개인 스킬이라 내보내지 않는다.
 
 **`content-preview` 와 `korean-check` 는 원본만 개인 공용에 있고, 스킬로는 팀 저장소의 플러그인 것이 뜬다.**
-개인 공용 플러그인의 `skills` 배열에서 빼고 `scripts/export-only-skills.json` 에 적어 두었다.
+개인 공용 플러그인의 `skills` 배열에서 빼고 `~/personal/fos-skills/scripts/export-only-skills.json` 에 적어 두었다.
 원본을 고치면 내보내고 팀 저장소의 플러그인을 갱신해야 실행되는 내용이 바뀐다.
 
 ```bash
@@ -66,7 +71,6 @@ cd ~/personal/fos-skills
 - 내보낸 뒤 팀 저장소에서 따로 커밋해야 팀에 전파된다.
 - 두 저장소의 frontmatter 규약이 달라 스크립트가 변환한다.
   원본은 `metadata.version`, 팀 저장소는 최상위 `version` 이다.
-- `references/work-writing-persona.md` 는 개인 자산이라 내보내지 않는다.
 
 내보내지 않는 스킬은 한 층에만 있으므로 그 층에서 직접 고친다.
 
