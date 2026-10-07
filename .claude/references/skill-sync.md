@@ -48,7 +48,7 @@ grep -n '^SHARED_' ~/personal/fos-skills/scripts/export-to-team.sh
 내보내기 스크립트는 `skills/<이름>` 으로 쓴다.
 플러그인이 담는 스킬은 그 자리가 본체를 가리키는 링크라, 스크립트가 링크 너머의 본체에 쓰고 링크는 그대로 남는다.
 
-`harness-cleanup` 은 개인 스킬이라 내보내지 않는다.
+`harness-cleanup` 과 `pr-review` 는 개인 스킬이라 내보내지 않는다.
 
 **`content-preview` 와 `korean-check` 는 원본만 개인 공용에 있고, 스킬로는 팀 저장소의 플러그인 것이 뜬다.**
 개인 공용 플러그인의 `skills` 배열에서 빼고 `scripts/export-only-skills.json` 에 적어 두었다.
@@ -73,8 +73,8 @@ cd ~/personal/fos-skills
 | 스킬 | 소유 | 본체 |
 | --- | --- | --- |
 | 팀 양식과 사내 시스템 스킬 | 팀 저장소 | `plugins/<플러그인>/skills/<이름>/`. 목록은 `claude plugin list` 와 팀 저장소 문서로 본다 |
-| `harness-cleanup` | 개인 공용 | `~/personal/fos-skills/harness-cleanup/` |
-| `pr-review`, `presentation`, `meeting-note` | 개인 로컬 | `~/.claude/skills/<이름>/` |
+| `harness-cleanup`, `pr-review` | 개인 공용 | `~/personal/fos-skills/<이름>/` |
+| `presentation`, `meeting-note` | 개인 로컬 | `~/.claude/skills/<이름>/` |
 
 개인 로컬 스킬은 여러 번 써서 절차가 자리를 잡으면 개인 공용으로 올린다.
 
