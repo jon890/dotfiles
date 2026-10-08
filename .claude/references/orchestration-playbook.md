@@ -195,14 +195,19 @@ terminal_title = ["app-name", "run-state", "project-name"]
 ### 첫 화면에서 멈춤
 
 원인은 `worker-show --dispatch <id>` 의 `lastFailure` 에 나온다.
-알려진 원인은 claude 의 폴더 신뢰 확인, codex 의 업데이트 안내(`agent-update-prompt`)와 hook 신뢰 확인(`agent-hooks-review-prompt`)이다.
+알려진 원인은 claude 의 폴더 신뢰 확인, codex 의 업데이트 안내(`agent-update-prompt`), hook 신뢰 확인(`agent-hooks-review-prompt`),
+작업 폴더 신뢰 확인(`agent-trust-workspace`)이다.
 
 터미널과 워크트리는 이미 만들어져 있으므로 새로 띄우지 않고 이어 붙인다.
 
 1. `terminal read` 로 화면을 본다. 신뢰나 업데이트를 대신 승인하지 않는다.
-   건너뛰는 선택지를 고르고 사용자에게 알린다
+   건너뛰는 선택지를 고르고 사용자에게 알린다.
+   codex 의 `agent-trust-workspace` 는 선택지가 신뢰와 종료 둘뿐이고, 고른 값이 저장소 루트 단위로 저장된다.
+   건너뛸 수 없으므로 사용자에게 묻는다. 승인을 받으면 `terminal send --enter` 로 첫 선택지를 고른다.
+   거절하면 그 터미널을 `worker-release` 로 닫고 claude worker 로 다시 띄운다
 2. `terminal wait --for tui-idle` 로 입력 대기 상태를 확인한다
 3. `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree id:<worktree_id>` 로 붙인다.
+   기존 worktree 에 띄웠던 worker 는 `worker-start` 응답에 worktree id 가 없다. `--worktree path:<경로>` 로 준다.
    `--model` 은 줄 수 없지만 처음 띄울 때 준 모델이 그 터미널에 남아 있다
 
 ### 시작 직후 실패
@@ -326,6 +331,18 @@ orca orchestration reply --id "$MSG_ID" --body "$BODY" --json
 
 끝난 worker 에게 일을 더 주려면 같은 worktree 에 새 dispatch 를 띄운다. 3단계의 기존 worktree 예시를 쓴다.
 worker 가 보낸 `ready: <plan> <worktree> <지시서>` 도 그 예시로 띄운다.
+
+### 후속 지시가 전달되지 않음
+
+끝난 worker 의 터미널에 `worker-start --terminal` 로 후속 일을 주면, 종료 코드 1 과 `turn_start_unobserved` 로 끝나기도 한다.
+지시가 실제로 입력되지 않은 경우가 있다. `terminal read` 로 화면을 보고 아래로 판단한다.
+
+| 화면 | 판단 | 할 일 |
+| --- | --- | --- |
+| `Working` 이 보이거나 새 턴이 진행 중이다 | 늦게 시작한 것이다 | 그대로 두고 4단계 대기를 건다 |
+| 입력란이 비어 있고 새 턴이 없다 | 지시가 전달되지 않았다 | `worker-abandon` 으로 그 dispatch 를 닫고, `worker-show` 의 `taskId` 로 `worker-start --task <task_id> --retry-of <dispatch_id> --terminal <handle> --worktree path:<경로>` 를 다시 보낸다 |
+
+같은 지시를 `--spec` 으로 새로 보내지 않는다. Task 가 둘 생겨 어느 쪽이 유효한 시도인지 흐려진다.
 
 **worker 가 권장안을 `ask` 로 보내면 그 안이 검사를 무력화하는지 먼저 본다.**
 worker 가 critic 을 돌리는 절차면 계획서 결함에 대한 질문이 구현 전에 온다.
