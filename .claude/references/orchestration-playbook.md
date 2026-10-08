@@ -240,13 +240,20 @@ orca orchestration check --run "$RUN_ID" --ack "$DELIVERY_ID" --wait --types "wo
 
 대기는 `--timeout-ms` 가 지나면 메시지 없이 `timedOut: true` 로 끝난다. 실패가 아니므로 다시 건다.
 
+백그라운드 출력 파일은 JSON 뒤에 하네스가 종료 코드 줄을 붙여 `json.load` 가 `Extra data` 로 실패한다.
+앞의 JSON 만 읽는다. `$OUT` 은 백그라운드 작업의 출력 파일 경로다.
+
+```bash
+python3 -c 'import json,sys; d=json.JSONDecoder().raw_decode(open(sys.argv[1]).read().lstrip())[0]["result"]; print(d["deliveryId"], d["timedOut"]); [print(m["id"], m["type"], m.get("body")) for m in d["messages"]]' "$OUT"
+```
+
 백그라운드 대기가 종료 코드 144 로 끝난 것처럼 보여도 Orca CLI 프로세스가 살아 있을 수 있다.
 그 프로세스가 대기 자리를 쥐고 있으면 새로 건 대기가 `waiter_exists` 로 바로 끝난다.
 찾아서 종료한 뒤 다시 건다. 이 세션이 건 프로세스이므로 다른 run 의 것과 구분해서 종료한다.
 세션을 다시 띄운 뒤 첫 대기가 `waiter_exists` 면 [이전 세션의 대기](#이전-세션의-대기)를 따른다.
 
 ```bash
-ps -eo pid,command | grep "orchestration check --wait" | grep -v grep
+ps -eo pid,command | grep "orchestration check" | grep -- --wait | grep -v grep
 ```
 
 Orca runtime 이 잠시 끊기면 `runtime_unavailable` 로 끝나기도 한다. `orca status` 로 살아 있는지 확인한 뒤 다시 건다.
@@ -375,7 +382,7 @@ orca orchestration worker-start --spec "$SPEC_LINE" --terminal "$TERMINAL_HANDLE
 - settled 된 dispatch 를 정리한다. 정리 경로와 잔여 확인 방법은 Orca 가이드를 따른다
 - 작업이 끝난 워크트리를 제거한다. `orca worktree rm` 뒤에 `git -C <repo> worktree prune` 을 돌린다.
   디렉터리만 지우고 git 의 워크트리 기록이 남아, 그대로면 브랜치 삭제가 `used by worktree` 로 거절된다
-- base 에 머지된 로컬 브랜치를 지운다
+- base 에 머지된 로컬 브랜치를 지운다. `orca worktree rm` 은 그 워크트리의 로컬 브랜치까지 지우므로, 이어서 `git branch -d` 가 `not found` 로 끝나면 이미 지워진 것이다
 
 **머지 직전과 지우기 직전에 `gh pr view --json state` 를 본다.** 머지는 `OPEN` 일 때만 하고, 브랜치와 워크트리는 `MERGED` 일 때만 지운다.
 `gh pr merge` 는 미해결 리뷰 스레드 때문에 거절될 수 있고, 결과를 보지 않고 브랜치를 지우면 PR 이 닫힌다.
