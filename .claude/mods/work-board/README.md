@@ -11,3 +11,4 @@
 
 설치: `~/.claude/mods` 를 로컬 마켓플레이스(`local-mods`)로 등록하고 `claude plugin install work-board@local-mods`.
 고친 뒤에는 `plugin.json` 의 version 을 올리고 `claude plugin update work-board@local-mods` 후 `/reload-plugins`.
+version 을 올리면 dotfiles 저장소(`~`)에 커밋하고 push 까지 한다. 테스트는 `tests/*.test.ts` 만 추적한다.
