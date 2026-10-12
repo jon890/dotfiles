@@ -83,6 +83,7 @@
 !.claude/mods/work-board/hooks/*.json
 !.claude/mods/work-board/hooks/*.js
 !.claude/mods/work-board/bin/
+!.claude/mods/work-board/tests/
 .claude/mods/work-board/bin/*
 !.claude/mods/work-board/bin/*.py
 !.claude/mods/work-board/README.md
