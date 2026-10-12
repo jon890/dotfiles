@@ -14,15 +14,16 @@
 ### 모델
 
 Claude 는 Opus 5.5, Sonnet 5.5, Haiku 5.5 만 쓴다. Claude Fable 과 `gpt-6-astra` 는 하위 에이전트와 worker 에 쓰지 않는다.
-작업별 선택은 `~/.claude/references/orchestration-playbook.md` 의 「모델」 절을 따른다.
+작업별 선택은 `orch` 스킬의 `references/agent-selection.md` 「모델」 절을 따른다.
 
 ### 다른 저장소를 바꾸는 작업은 `orchestration` 으로 위임한다
 
 **현재 세션이 연 저장소가 아닌 곳의 파일을 고치고 커밋하는 일은 직접 하지 않는다.**
 조회, 로그 확인, 이미 있는 스크립트 실행은 현재 세션에서 한다.
 
-**worker 를 띄우기 전에 `~/.claude/references/orchestration-playbook.md` 를 읽는다.**
+**worker 를 띄우기 전에 `/fos-skills:orch` 스킬을 연다.**
 언제 쓰는지, claude 와 codex 중 무엇을 고르는지, 띄우기부터 정리까지의 단계, 자주 나는 오류가 거기 있다.
+저장소마다 다른 사정은 그 저장소의 `.claude/orch-overlay.md` 를 먼저 읽는다.
 
 ### 조사를 맡긴 하위 역할은 회신을 받은 뒤 종료한다
 

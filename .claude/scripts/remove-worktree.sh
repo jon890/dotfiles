@@ -1,0 +1,1 @@
+/Users/nhn/personal/fos-skills/orch/scripts/remove-worktree.sh
