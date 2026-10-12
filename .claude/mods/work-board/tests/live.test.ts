@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, detailLines, mainRoot, mergeVerdict, sortPullRequests } from '../hooks/register.js'
+import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, detailLines, mainRoot, mergeVerdict, sortPullRequests, parseQuestions, questionText } from '../hooks/register.js'
 
 test('일하는 worker 만 고르고 워크트리 이름을 꺼낸다', () => {
   const stdout = JSON.stringify({ result: { workers: [
@@ -76,4 +76,14 @@ test('Ready 이고 필수 검사가 통과한 PR 을 머지 가능으로 보고 
   expect(mergeVerdict(prs[3]).label).toBe('CI 실패')
   expect(mergeVerdict(prs[0]).label).toBe('CI 통과, Ready 전')
   expect(sortPullRequests(prs).map((p) => p.number)).toEqual([3, 2, 4, 5, 1])
+})
+
+test('답을 기다리는 질문의 본문과 보낸 worker 를 꺼낸다', () => {
+  const stdout = '{"ok":true,"result":{"messages":[{"id":"m1","type":"question","from_handle":"dispatch:ctx_a","body":"둘 중\n무엇으로 할까요?","payload":"{\\"dispatchId\\":\\"ctx_a\\",\\"question\\":\\"A 와 B 중 무엇으로 할까요?\\"}","created_at":"2026-10-12T10:00:00Z"},{"id":"m2","type":"status","body":"x"}]}}'
+  const questions = parseQuestions(stdout)
+  expect(questions.length).toBe(1)
+  expect(questions[0].dispatch).toBe('ctx_a')
+  expect(questions[0].text).toBe('A 와 B 중 무엇으로 할까요?')
+  expect(questionText('가'.repeat(10), 5)).toBe('가가가가…')
+  expect(parseQuestions('깨진 {"type": "question"').length).toBe(1)
 })

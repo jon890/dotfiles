@@ -53,6 +53,37 @@ export function countQuestions(stdout) {
   return found ? found.length : 0
 }
 
+// check --peek 의 출력에서 답을 기다리는 질문과 escalation 을 꺼낸다.
+// 본문의 줄바꿈 같은 제어 문자는 JSON 문자열 밖에서는 공백과 같으므로 공백으로 바꿔 읽는다.
+// 그래도 읽히지 않으면 type 칸 수만큼 본문 없는 질문을 돌려준다.
+export function parseQuestions(stdout) {
+  try {
+    const data = JSON.parse(String(stdout).replace(/[\u0000-\u001f]/g, ' '))
+    const messages = (data && data.result && data.result.messages) || []
+    return messages
+      .filter((m) => m.type === 'question' || m.type === 'escalation')
+      .map((m) => {
+        let dispatch = String(m.from_handle || '').replace(/^dispatch:/, '')
+        let text = String(m.body || '')
+        try {
+          const payload = JSON.parse(m.payload || '{}')
+          dispatch = payload.dispatchId || dispatch
+          text = payload.question || text
+        } catch {}
+        return { id: m.id, type: m.type, dispatch, text: text.trim(), at: m.created_at || '' }
+      })
+  } catch {
+    return Array.from({ length: countQuestions(stdout) }, (_, i) => ({ id: 'q' + i, type: 'question', dispatch: '', text: '', at: '' }))
+  }
+}
+
+// 질문 본문을 창에 맞게 줄인다
+export function questionText(text, limit = 400) {
+  const flat = String(text || '').replace(/\s+/g, ' ').trim()
+  if (!flat) return '본문을 읽지 못했어요'
+  return flat.length > limit ? flat.slice(0, limit - 1) + '…' : flat
+}
+
 // gh pr list --json 의 결과를 PR 한 줄씩으로 바꾼다.
 export function parsePullRequests(stdout) {
   const rows = JSON.parse(stdout)
@@ -165,7 +196,7 @@ export function checkSummary(pr) {
 export function statusLine(items, state) {
   const count = (status) => items.filter((item) => item.status === status).length
   const parts = []
-  const decide = count('decide') + (state.questions || 0)
+  const decide = count('decide') + (Array.isArray(state.questions) ? state.questions.length : state.questions || 0)
   if (decide > 0) parts.push('결정 필요 ' + decide)
   if (Array.isArray(state.workers)) parts.push('worker ' + state.workers.length)
   if (Array.isArray(state.prs)) {
@@ -259,7 +290,7 @@ async function loadLive($) {
         next.errors.workers = String(failure.message || failure)
       }
       try {
-        next.questions = countQuestions(await run($, ['orca', 'orchestration', 'check', '--run', next.runId,
+        next.questions = parseQuestions(await run($, ['orca', 'orchestration', 'check', '--run', next.runId,
           '--peek', '--types', 'question,escalation', '--json']))
       } catch (failure) {
         next.errors.questions = String(failure.message || failure)
@@ -359,10 +390,29 @@ export function register(on) {
 
     // 결정 필요: worker 질문 수와 수동 decide 항목
     const decideRows = items.filter((item) => item.status === 'decide')
-    const questions = live.questions || 0
-    const decideView = decideRows.length + questions === 0 ? [] : [box('live-decide', 'red',
-      '결정 필요  ' + (decideRows.length + questions), [
-        ...(questions > 0 ? [Text({ key: 'q', wrap: 'wrap', children: ['◆ worker 질문 ' + questions + '건이 답을 기다려요'] })] : []),
+    const asked = Array.isArray(live.questions) ? live.questions : []
+    const questionView = (q) => {
+      const worker = Array.isArray(live.workers) ? live.workers.find((w) => w.id === q.dispatch) : null
+      const who = worker && worker.worktree ? worker.worktree : q.dispatch || 'worker'
+      return Box({
+        key: 'q-' + q.id,
+        flexDirection: 'column',
+        children: [
+          Box({
+            flexDirection: 'row',
+            columnGap: 1,
+            children: [
+              Text({ color: 'red', children: ['◆'] }),
+              Text({ bold: true, wrap: 'wrap', children: [(q.type === 'escalation' ? '막힘 · ' : '질문 · ') + who] }),
+            ],
+          }),
+          Text({ wrap: 'wrap', children: ['  ' + questionText(q.text)] }),
+        ],
+      })
+    }
+    const decideView = decideRows.length + asked.length === 0 ? [] : [box('live-decide', 'red',
+      '결정 필요  ' + (decideRows.length + asked.length), [
+        ...asked.map(questionView),
         ...decideRows.map((item) => itemView(item, SECTIONS[1])),
       ])]
 
