@@ -4,15 +4,17 @@
 파일 위치: git 루트의 .omc/board.json. 이미 .omc/handoffs/board.json 이 있으면 그것을 쓴다. --file 로 바꿀 수 있다.
 
 사용:
-  board.py set <id> [<status>] [--title T] [--owner O] [--pr P] [--next N] [--detail D ...]
+  board.py set <id> [<status>] [--title T] [--owner O] [--pr P] [--next N] [--worktree W] [--progress N/M] [--detail D ...]
+  (--worktree 는 그 항목을 맡은 worker 의 워크트리 이름이다. 창이 그 worker 상태를 항목 아래에 붙인다)
   (값을 '' 로 주면 그 칸을 지운다. --detail 은 여러 번 줄 수 있고 주면 하위 항목 전체를 바꾼다. --detail '' 은 지운다)
   board.py del <id>
   board.py list
-status: decide(결정 필요) | doing(진행 중) | wait(대기) | done(완료)
+status: goal(목표) | decide(결정 필요) | doing(진행 중) | wait(대기) | done(완료)
+--progress 는 「끝낸 단계/전체 단계」 (예: 7/10). 창이 진행 표시줄로 그린다
 """
 import argparse, datetime, json, os, subprocess, sys
 
-STATUSES = ('decide', 'doing', 'wait', 'done')
+STATUSES = ('goal', 'decide', 'doing', 'wait', 'done')
 
 def board_path(explicit):
     if explicit:
@@ -29,7 +31,7 @@ def main():
     ap.add_argument('cmd', choices=('set', 'del', 'list'))
     ap.add_argument('id', nargs='?')
     ap.add_argument('status', nargs='?', choices=STATUSES)
-    for key in ('title', 'owner', 'pr', 'next'):
+    for key in ('title', 'owner', 'pr', 'next', 'worktree', 'progress'):
         ap.add_argument('--' + key)
     ap.add_argument('--detail', action='append')
     ap.add_argument('--file')
@@ -53,7 +55,7 @@ def main():
             board['items'].append(item)
         if a.status:
             item['status'] = a.status
-        for key in ('title', 'owner', 'pr', 'next'):
+        for key in ('title', 'owner', 'pr', 'next', 'worktree', 'progress'):
             value = getattr(a, key)
             if value == '':
                 item.pop(key, None)
