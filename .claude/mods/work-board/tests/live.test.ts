@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, detailLines } from '../hooks/register.js'
+import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, detailLines, mainRoot, mergeVerdict, sortPullRequests } from '../hooks/register.js'
 
 test('일하는 worker 만 고르고 워크트리 이름을 꺼낸다', () => {
   const stdout = JSON.stringify({ result: { workers: [
@@ -55,4 +55,25 @@ test('접으면 끝난 단계를 수 한 줄로 줄이고 펼치면 그대로 �
   expect(detailLines(details, false)).toEqual([{ folded: 2 }, { text: '▶ 3 c' }, { text: '◇ 4 d' }])
   expect(detailLines(details, true).length).toBe(4)
   expect(detailLines(['◇ 1 a'], false)).toEqual([{ text: '◇ 1 a' }])
+})
+
+test('git 공통 디렉터리에서 주 checkout 의 root 를 꺼낸다', () => {
+  expect(mainRoot('/repo/.git\n')).toBe('/repo')
+  expect(mainRoot('/repo/.git/')).toBe('/repo')
+  expect(mainRoot('/bare.git')).toBe('')
+})
+
+test('Ready 이고 필수 검사가 통과한 PR 을 머지 가능으로 보고 맨 위에 둔다', () => {
+  const pr = (number, draft, merge, extra = {}) => ({ number, title: '', draft, merge, pass: 9, fail: 0, pending: 0, failed: [], ...extra })
+  const prs = [
+    pr(1, true, 'CLEAN'),
+    pr(2, false, 'BLOCKED', { pending: 3 }),
+    pr(3, false, 'UNSTABLE', { fail: 1, failed: ['claude-review'] }),
+    pr(4, false, 'BLOCKED', { fail: 1, failed: ['backend'] }),
+    pr(5, false, 'DIRTY'),
+  ]
+  expect(mergeVerdict(prs[2]).label).toBe('머지 가능')
+  expect(mergeVerdict(prs[3]).label).toBe('CI 실패')
+  expect(mergeVerdict(prs[0]).label).toBe('CI 통과, Ready 전')
+  expect(sortPullRequests(prs).map((p) => p.number)).toEqual([3, 2, 4, 5, 1])
 })

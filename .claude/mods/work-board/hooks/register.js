@@ -61,11 +61,14 @@ export function parsePullRequests(stdout) {
     let pass = 0
     let fail = 0
     let pending = 0
+    const failed = []
     for (const check of checks) {
       const result = String(check.conclusion || check.state || '').toUpperCase()
       if (result === 'SUCCESS' || result === 'SKIPPED' || result === 'NEUTRAL') pass += 1
-      else if (result === 'FAILURE' || result === 'ERROR' || result === 'CANCELLED' || result === 'TIMED_OUT') fail += 1
-      else pending += 1
+      else if (result === 'FAILURE' || result === 'ERROR' || result === 'CANCELLED' || result === 'TIMED_OUT') {
+        fail += 1
+        failed.push(String(check.name || check.context || ''))
+      } else pending += 1
     }
     return {
       number: pr.number,
@@ -76,6 +79,7 @@ export function parsePullRequests(stdout) {
       pass,
       fail,
       pending,
+      failed,
     }
   })
 }
@@ -126,6 +130,27 @@ export function progressBar(progress, width = 20) {
 }
 
 // PR 한 줄의 CI 요약.
+// 머지에 필요 없는 검사. 이것만 실패한 UNSTABLE 은 머지 가능으로 본다(pr-merge 스킬의 규칙)
+const OPTIONAL_CHECKS = ['claude-review']
+
+// PR 하나의 머지 판정. rank 는 정렬 순서다(작을수록 위)
+export function mergeVerdict(pr) {
+  const blocking = (pr.failed || []).filter((name) => !OPTIONAL_CHECKS.includes(name))
+  if (pr.merge === 'DIRTY') return { label: '충돌', color: 'red', rank: pr.draft ? 4 : 2 }
+  if (blocking.length > 0) return { label: 'CI 실패', color: 'red', rank: pr.draft ? 4 : 2 }
+  if (pr.pending > 0) return { label: '검사 중', color: 'yellow', rank: pr.draft ? 4 : 1 }
+  if (pr.merge === 'BEHIND') return { label: 'main 뒤처짐', color: 'yellow', rank: pr.draft ? 4 : 1 }
+  const clean = pr.merge === 'CLEAN' || pr.merge === 'UNSTABLE' || pr.merge === 'HAS_HOOKS'
+  if (pr.draft) return { label: clean ? 'CI 통과, Ready 전' : pr.merge || '상태 모름', color: undefined, rank: 3 }
+  return clean
+    ? { label: '머지 가능', color: 'green', rank: 0 }
+    : { label: pr.merge || '상태 모름', color: 'yellow', rank: 1 }
+}
+
+export function sortPullRequests(prs) {
+  return [...prs].sort((a, b) => mergeVerdict(a).rank - mergeVerdict(b).rank || a.number - b.number)
+}
+
 export function checkSummary(pr) {
   const total = pr.pass + pr.fail + pr.pending
   if (total === 0) return 'CI 없음'
@@ -165,11 +190,33 @@ function refreshStatus($) {
   $.ui.invalidate('ui.render')
 }
 
+// 세션 cwd 가 워크트리로 옮겨 가도 같은 board.json 을 읽도록, 주 checkout 의 root 를 찾는다
+let rootCwd = null
+let rootDir = ''
+export function mainRoot(commonDir) {
+  const dir = String(commonDir || '').trim().replace(/\/+$/, '')
+  return dir.endsWith('/.git') ? dir.slice(0, -5) : ''
+}
+async function boardRoot($) {
+  const cwd = await $.session.cwd()
+  if (cwd !== rootCwd) {
+    rootCwd = cwd
+    try {
+      rootDir = mainRoot(await run($, ['git', 'rev-parse', '--path-format=absolute', '--git-common-dir']))
+    } catch {
+      rootDir = ''
+    }
+  }
+  return rootDir
+}
+
 async function loadFile($) {
   now = await $.clock.now()
   let found = ''
   let text = ''
-  for (const candidate of BOARD_PATHS) {
+  const root = await boardRoot($)
+  for (const relative of BOARD_PATHS) {
+    const candidate = root ? root + '/' + relative : relative
     if (await $.fs.exists(candidate)) {
       found = candidate
       text = await $.fs.read(candidate)
@@ -329,24 +376,38 @@ export function register(on) {
 
     // 열린 PR: Draft/Ready, CI 요약, 머지 상태
     const prView = live.prs === null && !live.errors.prs ? [] : [box('live-prs', 'cyan',
-      '열린 PR  ' + (live.prs ? live.prs.length : '-'),
+      '열린 PR  ' + (live.prs ? live.prs.length + '  ·  머지 가능 ' + live.prs.filter((pr) => mergeVerdict(pr).rank === 0).length : '-'),
       live.errors.prs
         ? [dim('pe', '읽지 못했어요: ' + live.errors.prs)]
         : live.prs.length === 0
           ? [dim('p0', '열린 PR 이 없어요')]
-          : live.prs.map((pr) => Box({
-            key: 'pr-' + pr.number,
-            flexDirection: 'column',
-            children: [
-              Text({ bold: true, wrap: 'wrap', children: ['#' + pr.number + ' ' + pr.title] }),
-              Text({
-                color: pr.fail > 0 ? 'red' : undefined,
-                dimColor: pr.fail === 0,
-                wrap: 'wrap',
-                children: ['  ' + (pr.draft ? 'Draft' : 'Ready') + '  ·  ' + checkSummary(pr) + '  ·  ' + pr.merge],
-              }),
-            ],
-          })))]
+          : sortPullRequests(live.prs).map((pr) => {
+            const verdict = mergeVerdict(pr)
+            return Box({
+              key: 'pr-' + pr.number,
+              flexDirection: 'column',
+              children: [
+                Box({
+                  flexDirection: 'row',
+                  columnGap: 1,
+                  children: [
+                    Text({ color: verdict.color, bold: verdict.rank === 0, children: [verdict.rank === 0 ? '●' : pr.draft ? '○' : '◐'] }),
+                    Text({ bold: true, dimColor: pr.draft, wrap: 'wrap', children: ['#' + pr.number + ' ' + pr.title] }),
+                  ],
+                }),
+                Box({
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  children: [
+                    Text({ key: 'stage', color: pr.draft ? undefined : 'cyan', dimColor: pr.draft, children: ['  ' + (pr.draft ? 'Draft' : 'Ready')] }),
+                    Text({ key: 'sep1', dimColor: true, children: ['  ·  '] }),
+                    Text({ key: 'verdict', color: verdict.color, bold: verdict.rank === 0, children: [verdict.label] }),
+                    Text({ key: 'ci', dimColor: true, children: ['  ·  ' + checkSummary(pr)] }),
+                  ],
+                }),
+              ],
+            })
+          }))]
 
     // 수동 항목: 진행, 대기, 완료
     const manualView = (section) => {
