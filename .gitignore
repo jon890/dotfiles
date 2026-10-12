@@ -68,3 +68,22 @@
 !.codex/career-research.config.toml
 !.codex/cron-light.config.toml
 !.codex/final-review.config.toml
+
+# Claude Code mods
+!.claude/mods/
+.claude/mods/*
+!.claude/mods/.claude-plugin/
+!.claude/mods/work-board/
+.claude/mods/work-board/*
+!.claude/mods/work-board/.claude-plugin/
+.claude/mods/work-board/.claude-plugin/*
+!.claude/mods/work-board/.claude-plugin/plugin.json
+!.claude/mods/work-board/hooks/
+.claude/mods/work-board/hooks/*
+!.claude/mods/work-board/hooks/*.json
+!.claude/mods/work-board/hooks/*.js
+!.claude/mods/work-board/bin/
+.claude/mods/work-board/bin/*
+!.claude/mods/work-board/bin/*.py
+!.claude/mods/work-board/README.md
+!.claude/mods/.claude-plugin/marketplace.json

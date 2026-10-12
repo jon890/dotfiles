@@ -1,0 +1,8 @@
+{
+  "name": "work-board",
+  "version": "0.3.0",
+  "description": "저장소의 작업 현황 파일(.omc/board.json)을 /board 창과 상태 줄에 보여 준다",
+  "author": {
+    "name": "bifos"
+  }
+}
