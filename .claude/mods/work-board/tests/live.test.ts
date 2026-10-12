@@ -53,7 +53,7 @@ test('진행 표시줄은 끝낸 단계 비율로 칸을 채운다', () => {
 test('접으면 끝난 단계를 수 한 줄로 줄이고 펼치면 그대로 둔다', () => {
   const details = ['✓ 1 a', '✓ 2 b', '▶ 3 c', '◇ 4 d']
   expect(detailLines(details, false)).toEqual([{ folded: 2 }, { text: '▶ 3 c' }, { text: '◇ 4 d' }])
-  expect(detailLines(details, true).length).toBe(4)
+  expect(detailLines(details, true)).toEqual([{ text: '▶ 3 c' }, { text: '◇ 4 d' }, { text: '✓ 1 a', done: true }, { text: '✓ 2 b', done: true }])
   expect(detailLines(['◇ 1 a'], false)).toEqual([{ text: '◇ 1 a' }])
 })
 

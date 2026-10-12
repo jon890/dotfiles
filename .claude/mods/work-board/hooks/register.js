@@ -111,11 +111,12 @@ export function workerLine(worker, prs) {
 }
 
 // 「7/10」 을 진행 표시줄 한 줄로 바꾼다. 형식이 틀리면 null.
-// 하위 항목 중 '✓' 로 시작하는 끝난 단계를 접는다. 펼치면 그대로, 접으면 끝난 단계 수를 한 줄로 앞에 둔다
+// 하위 항목 중 '✓' 로 시작하는 끝난 단계를 접는다. 접으면 끝난 단계 수를 한 줄로 앞에 둔다
+// 펼치면 진행 중인 하위 항목을 앞에, 끝난 단계를 흐리게 뒤에 둔다
 export function detailLines(details, expanded) {
-  if (expanded) return details.map((text) => ({ text }))
   const finished = details.filter((text) => text.startsWith('✓'))
   const rest = details.filter((text) => !text.startsWith('✓')).map((text) => ({ text }))
+  if (expanded) return [...rest, ...finished.map((text) => ({ text, done: true }))]
   return finished.length ? [{ folded: finished.length }, ...rest] : rest
 }
 
@@ -348,7 +349,9 @@ export function register(on) {
           ...(!done && Array.isArray(item.details) ? detailLines(item.details, showDone).map((line, i) =>
             line.folded
               ? dim('d-' + i, '  ✓ 끝난 단계 ' + line.folded + '개 (d 를 누르면 펼쳐요)')
-              : Text({ key: 'd-' + i, wrap: 'wrap', children: ['  • ' + line.text] })) : []),
+              : line.done
+                ? dim('d-' + i, '  ' + line.text)
+                : Text({ key: 'd-' + i, wrap: 'wrap', children: ['  • ' + line.text] })) : []),
           ...(item.next && !done ? [Text({ wrap: 'wrap', children: ['  → ' + item.next] })] : []),
         ],
       })
