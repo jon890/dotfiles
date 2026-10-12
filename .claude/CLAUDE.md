@@ -11,6 +11,11 @@
 - 커밋은 관심사별로 분리한다.
 - 저장소의 관례를 반드시 따를 필요는 없다. 더 나은 패턴이 있으면 사용자에게 제안하고 적용한다.
 
+### 모델
+
+Claude 는 Opus 5.5, Sonnet 5.5, Haiku 5.5 만 쓴다. Claude Fable 과 `gpt-6-astra` 는 하위 에이전트와 worker 에 쓰지 않는다.
+작업별 선택은 `~/.claude/references/orchestration-playbook.md` 의 「모델」 절을 따른다.
+
 ### 다른 저장소를 바꾸는 작업은 `orchestration` 으로 위임한다
 
 **현재 세션이 연 저장소가 아닌 곳의 파일을 고치고 커밋하는 일은 직접 하지 않는다.**
