@@ -1,0 +1,58 @@
+import { test, expect } from 'claude-code/testing'
+import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, detailLines } from '../hooks/register.js'
+
+test('일하는 worker 만 고르고 워크트리 이름을 꺼낸다', () => {
+  const stdout = JSON.stringify({ result: { workers: [
+    { dispatchId: 'a', dispatchStatus: 'dispatched', workerState: 'ready',
+      resource: { worktreeId: 'x::/repo/worktrees/repo/ci-path-filter' } },
+    { dispatchId: 'b', dispatchStatus: 'completed', workerState: 'succeeded', resource: { worktreeId: 'x::/repo/w/old' } },
+  ] } })
+  expect(parseWorkers(stdout)).toEqual([{ id: 'a', state: 'ready', worktree: 'ci-path-filter' }])
+})
+
+test('질문과 escalation 만 세고 heartbeat 는 세지 않는다', () => {
+  const stdout = '{"messages":[{"type": "question"},{"type":"heartbeat"},{"type":"escalation"},{"type":"status"}]}'
+  expect(countQuestions(stdout)).toBe(2)
+})
+
+test('PR 의 CI 결과를 통과, 실패, 진행으로 나누고 worker 에 붙인다', () => {
+  const prs = parsePullRequests(JSON.stringify([{
+    number: 503, title: 'CI 필터', headRefName: 'jon890/ci-path-filter', isDraft: false, mergeStateStatus: 'CLEAN',
+    statusCheckRollup: [{ conclusion: 'SUCCESS' }, { conclusion: 'FAILURE' }, { state: 'PENDING' }, { conclusion: 'SKIPPED' }],
+  }]))
+  expect(prs[0]).toMatchObject({ number: 503, pass: 2, fail: 1, pending: 1, draft: false })
+  expect(checkSummary(prs[0])).toBe('CI 2/4 · 실패 1 · 진행 1')
+  expect(prFor({ id: 'a', state: '', worktree: 'ci-path-filter' }, prs)?.number).toBe(503)
+  expect(prFor({ id: 'b', state: '', worktree: 'path-filter' }, prs)).toBe(null)
+})
+
+test('상태 줄은 질문과 수동 decide 를 합쳐 결정 필요로 센다', () => {
+  const line = statusLine([{ status: 'decide' }, { status: 'doing' }],
+    { questions: 2, workers: [{}, {}], prs: [{ fail: 1 }, { fail: 0 }] })
+  expect(line).toBe('결정 필요 3 · worker 2 · PR 2(CI 실패 1) · 진행 1   /board')
+  expect(statusLine([], { questions: null, workers: null, prs: null })).toBe('')
+})
+
+test('항목의 worktree 로 worker 를 붙이고, 안 붙은 worker 만 따로 고른다', () => {
+  const workers = [{ id: 'a', state: 'ready', worktree: 'ci-path-filter' }, { id: 'b', state: 'busy', worktree: 'other' }]
+  const items = [{ id: 'x', status: 'doing', worktree: 'ci-path-filter' }, { id: 'y', status: 'done', worktree: 'other' }]
+  expect(workerFor(items[0], workers)?.id).toBe('a')
+  expect(unmappedWorkers(items, workers).map((w) => w.id)).toEqual(['b'])
+  const prs = [{ number: 503, branch: 'jon890/ci-path-filter', pass: 9, fail: 0, pending: 0 }]
+  expect(workerLine(workers[0], prs)).toBe('ci-path-filter  #503 CI 9/9')
+  expect(workerLine(workers[1], prs)).toBe('other  busy')
+})
+
+test('진행 표시줄은 끝낸 단계 비율로 칸을 채운다', () => {
+  expect(progressBar('7/10', 10)).toBe('███████░░░ 7/10 (70%)')
+  expect(progressBar('3 / 4', 4)).toBe('███░ 3/4 (75%)')
+  expect(progressBar('abc')).toBe(null)
+  expect(progressBar('1/0')).toBe(null)
+})
+
+test('접으면 끝난 단계를 수 한 줄로 줄이고 펼치면 그대로 둔다', () => {
+  const details = ['✓ 1 a', '✓ 2 b', '▶ 3 c', '◇ 4 d']
+  expect(detailLines(details, false)).toEqual([{ folded: 2 }, { text: '▶ 3 c' }, { text: '◇ 4 d' }])
+  expect(detailLines(details, true).length).toBe(4)
+  expect(detailLines(['◇ 1 a'], false)).toEqual([{ text: '◇ 1 a' }])
+})
