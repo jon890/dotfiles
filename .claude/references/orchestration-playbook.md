@@ -67,29 +67,27 @@ worker 는 소계획마다 `ready: <plan> <worktree 절대경로> <지시서 절
 | Task 성격 | 모델 | effort |
 | --- | --- | --- |
 | 계획서가 있고 수정 위치와 검증 명령이 정해진 구현 | `gpt-6.1-sol`, Claude Sonnet 5.5 | sol `low`, Sonnet `medium` |
-| 단순 반영(리뷰 지적, 문구, 설정 한 줄) | `gpt-6-luna` | `high`(공식 시작점) |
+| 단순 반영(리뷰 지적, 문구, 설정 한 줄) | `gpt-6-luna`, Claude Haiku 5.5 | luna `high`(공식 시작점), Haiku `low`(짧은 작업) 또는 `medium` |
 | 계획은 있지만 저장소를 탐색해야 하는 여러 파일 구현 | `gpt-6.1-sol`, Claude Sonnet 5.5 | `medium`, 같은 Task 가 실패하면 `high` |
 | 어려운 디버깅, 계약 설계, 데이터 마이그레이션 | Claude Opus 5.5, `gpt-6.1-sol` | Opus `medium` 시작, sol `high` |
 | 리뷰와 검증 | 구현한 쪽과 다른 제공자의 모델 | `medium` |
 
-비교 근거다(2026-10-01 공식 자료 조사. 값이 바뀌면 아래 출처에서 다시 확인한다).
+비교 근거다(2026-10-01 공식 자료 조사, Claude 행은 2026-10-12 재확인. 값이 바뀌면 아래 출처에서 다시 확인한다).
 
 | 모델 | 공식 권장 용도 | 공식 effort 시작점 | 입력 / 출력 ($/1M 토큰) | 상대 속도 |
 | --- | --- | --- | --- | --- |
 | `gpt-6.1-sol` | 복잡한 리팩터링, 코드베이스 조사, 장기 에이전트 | `medium`(기본) | 2 / 10 | Fast 2배(사용량 증가) |
 | `gpt-6-luna` | 집중된 대량 작업, focused coding | `high` | 0.10 / 0.50 | Fast 1.5배 |
-| `gpt-6-astra` | 가장 강한 능력이 필요할 때 | 확인 못 함 | 10 / 50 | Fast 2배 |
 | Claude Sonnet 5.5 | 일상 코딩과 에이전트 | 잘 정의된 Task 는 `medium`, 어렵거나 긴 Task 는 `high`(기본) | 2 / 10 | Fast |
-| Claude Opus 5.5 | 장시간 에이전트 코딩, 대규모 리팩터링 | `medium`(기본) | 4 / 20 | Moderate |
-| Claude Fable 5.1 | Opus 5.5 의 `xhigh`, `max` 로도 부족한 추론 | `high` | 10 / 50 | Slower |
-| Claude Haiku 4.5 | 실시간, 대량 처리, 서브에이전트 | 미지원 | 1 / 5 | Fastest |
+| Claude Opus 5.5 | 장시간 에이전트 코딩과 지식 작업 | `medium`(기본) | 4 / 20 | Moderate |
+| Claude Haiku 5.5 | 분류, 추출, 라우팅 같은 대량·저지연 작업 | `medium`(기본). 짧은 도구 작업은 `low`, 긴 에이전트 작업은 `high` | 0.10 / 0.50 (프롬프트 10만 토큰 초과 요청은 0.50 / 2.50) | Fastest |
 
 - worker 가 시작 직후 출력 없이 실패하면 3단계의 [시작 직후 실패](#시작-직후-실패) 대로 다른 모델로 다시 띄운다
-- `gpt-6-astra` 와 Claude Fable 5.1 은 다른 후보가 같은 Task 에서 실패했을 때만 검토한다
+- Claude 는 Opus 5.5(`claude-opus-5-5`), Sonnet 5.5(`claude-sonnet-5-5`), Haiku 5.5(`claude-haiku-5-5`) 만 쓴다. Claude Fable 과 `gpt-6-astra` 는 쓰지 않는다(사용자 결정)
 - 확인하지 못한 effort 별 코딩 점수는 선택 근거에서 뺐다. 제공자 사이의 점수도 직접 비교하지 않는다
-- 공식 effort 별 지연과 비용 배수는 양쪽 모두 확인 못 함
-- 출처: [sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [astra](https://developers.openai.com/api/docs/models/gpt-6-astra), [Codex 모델](https://learn.chatgpt.com/docs/models)
-- 출처: [Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort), [Claude 가격](https://platform.claude.com/docs/en/about-claude/pricing), [Claude 모델 선택](https://platform.claude.com/docs/en/about-claude/models/choosing-a-model)
+- effort 별 지연과 비용 배수는 양쪽 공식 문서에 수치가 없다(2026-10-12 확인). 정성 설명만 있으므로 같은 Task 결과로 판단한다
+- 출처: [sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [luna](https://developers.openai.com/api/docs/models/gpt-6-luna), [Codex 모델](https://learn.chatgpt.com/docs/models)
+- 출처: [Claude effort](https://platform.claude.com/docs/en/build-with-claude/effort), [Claude 가격](https://platform.claude.com/docs/en/about-claude/pricing), [Claude 모델 선택](https://platform.claude.com/docs/en/about-claude/models/choosing-a-model), [Claude 모델 비교](https://platform.claude.com/docs/en/about-claude/models/overview)
 
 ### effort
 
@@ -138,8 +136,16 @@ worker 는 되묻지 않으면 받은 만큼만 하고 완료로 보고한다. �
   그 회신이 `worker_done` 으로 바로 오면 절차 위반으로 본다
 - PR 을 열게 하면 「PR 생성은 승인돼 있다」 를 적는다.
   codex worker 의 기본 지침은 GitHub 게시를 막아, 지시서에 「PR 을 연다」 만 있으면 승인을 다시 묻는다
+- PR 을 열게 하면 「`gh pr create` 나 리뷰 회신이 거부되면 push 한 뒤 본문 파일 경로(회신이면 스레드 id 와 회신 파일)를 status 로 보낸다」 도 적는다.
+  지시서의 승인은 worker 세션의 권한 분류기에 전달되지 않아, 같은 요청이 세션마다 허용되기도 하고 거부되기도 한다
 - PR 을 열게 하면 「PR 은 기준 브랜치를 base 로 따로 연다. 다른 PR 브랜치를 base 로 두지 않는다」 도 적는다.
   앞 PR 브랜치를 base 로 연 PR 은 앞 PR 을 `--delete-branch` 로 머지하면 자동으로 닫히거나 앞 브랜치로 머지된다
+- 뒤 PR 이 앞 PR 의 코드에 기대면 머지 순서와, 앞 PR 머지 뒤 뒤 브랜치를 기준 브랜치 위로 다시 맞출 담당(worker 또는 코디네이터)을 적는다.
+  base 를 따로 열라는 규칙과 부딪혀 worker 가 순서를 스스로 정하게 된다
+- 「파일 수정은 `sed -i` 대신 Edit 나 python 으로 한다」.
+  macOS `sed` 는 `-i ''` 가 필요하고 줄바꿈 치환이 실패한다
+- 「삭제처럼 되돌리기 어려운 쓰기는 하위 에이전트에 맡기지 않고 본체가 한다」.
+  하위 에이전트가 받은 지시는 사용자 승인으로 인정되지 않아 권한 분류기가 막는다
 - 소계획으로 나누는 일을 맡기면 「worker 를 띄우지 않는다. 소계획마다 `ready:` status 메시지를 보낸다」 와 그 형식을 적는다.
   이유는 [언제 쓰나](#언제-쓰나)에 있다
 - 「하위 에이전트는 orca 명령을 쓰지 않는다. 스폰 프롬프트에 이 줄을 넣는다」 와 「`worker_done` 은 완료 기준을 채운 뒤 본체가 한 번만 보낸다」.
@@ -191,6 +197,13 @@ orca orchestration worker-start --run "$RUN_ID" --spec "$SPEC_LINE" --worktree "
 `--worktree new-top-level` 은 `<repo>/worktrees/<repo>/<name>` 에 워크트리를 만든다.
 그 경로가 ignore 되지 않아, main 에서 `git add -A` 를 하면 워크트리가 커밋될 수 있다.
 `worktrees/` 가 보이면 로컬 전용인 `.git/info/exclude` 에 `/worktrees/` 를 추가한다. 공유되는 `.gitignore` 는 고치지 않는다.
+
+**새 워크트리에 대상 저장소의 `.claude/settings.local.json` 을 복사한다.**
+이 파일은 추적되지 않아 워크트리에 따라오지 않는다. 없으면 사용자가 허용해 둔 `gh pr`, 리뷰 회신 같은 명령이 worker 세션에서 다시 막힌다.
+
+```bash
+[ -f "$REPO/.claude/settings.local.json" ] && mkdir -p "$WORKTREE/.claude" && cp "$REPO/.claude/settings.local.json" "$WORKTREE/.claude/"
+```
 Orca 가 남기는 `.orca-worktree-trash` 는 Orca 가 관리하므로 지우지 않는다.
 
 `worker-start` 가 0 이 아닌 코드로 끝나면 새로 띄우지 않고 아래 절에서 원인을 찾는다.
@@ -347,6 +360,14 @@ orca orchestration reply --id "$MSG_ID" --body "$BODY" --json
 `send --to dispatch:<id>` 는 worker 가 하위 run 을 만든 뒤에는 `recipient_run_mismatch`, 끝난 dispatch 에는 `dispatch_inactive` 로 거절된다.
 같은 worker 의 마지막 메시지에 단 `reply` 는 전달된다.
 
+**worker 가 status 를 보내고 입력 대기로 멈춰 있으면 `reply` 와 `send` 가 그 worker 를 깨우지 않는다.**
+dispatch 가 끝나지 않아 `worker-start --terminal` 도 `already has an active dispatch` 로 거절된다.
+`worker-read` 의 마지막 출력이 입력 대기면 터미널에 직접 입력한다. 보낸 뒤 커밋이나 화면이 바뀌는지 본다.
+
+```bash
+orca terminal send --terminal "$TERMINAL_HANDLE" --text "코디네이터 메시지 <msg_id> 를 orca orchestration check 로 읽고 수행한다" --enter --wait-submit 10
+```
+
 끝난 worker 에게 일을 더 주려면 같은 worktree 에 새 dispatch 를 띄운다. 3단계의 기존 worktree 예시를 쓴다.
 worker 가 보낸 `ready: <plan> <worktree> <지시서>` 도 그 예시로 띄운다.
 
@@ -390,7 +411,7 @@ PR 브랜치가 이미 지워졌거나 fork 에서 온 PR 이면 `git fetch orig
 그 사본에서 영향 받는 검사를 돌리고, 끝나면 `git worktree remove` 로 지운다.
 실패하면 그 worker 의 worktree 에 새 dispatch 를 띄워 main 을 merge 하고 고치게 한다. rebase 와 force push 는 쓰지 않는다.
 
-**코디네이터가 충돌을 직접 풀었으면 push 전에 worker 와 같은 검사를 돌린다.** 포맷, lint, 타입 검사와 바뀐 파일의 시험이다. 손으로 합친 줄이 포맷 검사에 걸려 CI 가 한 번 더 돈다.
+**코디네이터가 충돌을 직접 풀었으면 push 전에 worker 와 같은 검사를 돌린다.** 포맷, lint, 타입 검사와 바뀐 파일의 테스트다. 손으로 합친 줄이 포맷 검사에 걸려 CI 가 한 번 더 돈다.
 코드 충돌이 두 기능의 동작을 함께 살려야 하는 것이면 직접 풀지 않고 worker 에게 맡긴다.
 
 ### 완료 전에 온 worker_done
