@@ -90,3 +90,10 @@
 !.claude/mods/work-board/bin/*.py
 !.claude/mods/work-board/README.md
 !.claude/mods/.claude-plugin/marketplace.json
+
+# Gradle 개인 init 스크립트 (이 머신의 ai-analysis worktree 병렬 build 용 docker 테스트 슬롯)
+!.gradle/
+.gradle/*
+!.gradle/init.d/
+.gradle/init.d/*
+!.gradle/init.d/*.init.gradle.kts
