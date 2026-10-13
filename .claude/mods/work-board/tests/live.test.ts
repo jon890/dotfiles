@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, detailLines, mainRoot, mergeVerdict, sortPullRequests, parseQuestions, questionText } from '../hooks/register.js'
+import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, stepProgress, itemProgress, detailLines, mainRoot, mergeVerdict, sortPullRequests, parseQuestions, questionText } from '../hooks/register.js'
 
 test('일하는 worker 만 고르고 워크트리 이름을 꺼낸다', () => {
   const stdout = JSON.stringify({ result: { workers: [
@@ -48,6 +48,20 @@ test('진행 표시줄은 끝낸 단계 비율로 칸을 채운다', () => {
   expect(progressBar('3 / 4', 4)).toBe('███░ 3/4 (75%)')
   expect(progressBar('abc')).toBe(null)
   expect(progressBar('1/0')).toBe(null)
+})
+
+test('진행률은 숫자로 시작하는 단계 줄에서 센다', () => {
+  expect(stepProgress(['✓ 1 a', '✓ 2 b', '3 c', '4 d'])).toBe('2/4')
+  expect(stepProgress(['1 a', '2 b'])).toBe('0/2')
+  expect(stepProgress(['참고: x', '✓ 메모', '✓ 1 a', '2 b'])).toBe('1/2')
+  expect(stepProgress(['참고만 있다'])).toBe(null)
+  expect(stepProgress(undefined)).toBe(null)
+})
+
+test('progress 가 있으면 단계 수보다 우선한다', () => {
+  expect(itemProgress({ progress: '7/10', details: ['✓ 1 a', '2 b'] })).toBe('7/10')
+  expect(itemProgress({ details: ['✓ 1 a', '2 b'] })).toBe('1/2')
+  expect(itemProgress({ title: 'x' })).toBe(null)
 })
 
 test('접으면 끝난 단계를 수 한 줄로 줄이고 펼치면 그대로 둔다', () => {

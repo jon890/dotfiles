@@ -4,7 +4,8 @@
 //      형식: { updatedAt: ISO 문자열, items: [{ id, title, status, owner?, pr?, worktree?, next?, details?: string[] }] }
 //      worktree 는 그 항목을 맡은 worker 의 워크트리 이름이다. 창이 그 worker 상태를 항목 아래에 붙인다.
 //      status: goal(목표), decide(결정 필요), doing(진행 중), wait(대기), done(완료)
-//      progress 는 「끝낸 단계/전체 단계」(예: 7/10)이고 진행 표시줄로 그린다.
+//      진행 표시줄은 details 에서 숫자로 시작하는 단계(「1 …」, 끝나면 「✓ 1 …」)를 세어 그린다. 참고 줄은 세지 않는다.
+//      progress(「끝낸 단계/전체 단계」, 예: 7/10)가 있으면 그 값을 우선한다.
 //   2. 실제 상태: orca orchestration(이 세션이 묶인 run 의 worker 와 답을 기다리는 질문)과 gh(열린 PR, CI).
 // 파일은 FILE_MS, 명령은 LIVE_MS 마다 다시 읽는다. 창에서 r 을 누르면 명령을 바로 다시 읽는다.
 
@@ -149,6 +150,18 @@ export function detailLines(details, expanded) {
   const rest = details.filter((text) => !text.startsWith('✓')).map((text) => ({ text }))
   if (expanded) return [...rest, ...finished.map((text) => ({ text, done: true }))]
   return finished.length ? [{ folded: finished.length }, ...rest] : rest
+}
+
+// 하위 줄 가운데 숫자로 시작하는 단계를 세어 「끝낸/전체」 문자열로 돌려준다. 단계가 없으면 null
+export function stepProgress(details) {
+  if (!Array.isArray(details)) return null
+  const steps = details.filter((text) => /^(✓ )?\d+ /.test(text))
+  if (steps.length === 0) return null
+  return steps.filter((text) => text.startsWith('✓')).length + '/' + steps.length
+}
+
+export function itemProgress(item) {
+  return item.progress || stepProgress(item.details)
 }
 
 export function progressBar(progress, width = 20) {
@@ -373,7 +386,7 @@ export function register(on) {
             ],
           }),
           ...(meta.length ? [Text({ dimColor: true, wrap: 'wrap', children: ['  ' + meta.join('  ·  ')] })] : []),
-          ...(progressBar(item.progress) ? [Text({ key: 'bar', color: section.color, children: ['  ' + progressBar(item.progress)] })] : []),
+          ...(progressBar(itemProgress(item)) ? [Text({ key: 'bar', color: section.color, children: ['  ' + progressBar(itemProgress(item))] })] : []),
           ...(!done && item.worktree ? [workerFor(item, live.workers)
             ? Text({ key: 'w', color: 'yellow', wrap: 'wrap', children: ['  ⚙ worker ' + workerLine(workerFor(item, live.workers), live.prs)] })
             : Text({ key: 'w', dimColor: true, wrap: 'wrap', children: ['  ⚙ worker 없음 (' + item.worktree + ')'] })] : []),
