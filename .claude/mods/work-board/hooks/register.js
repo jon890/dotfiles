@@ -336,6 +336,20 @@ function ago(at) {
 
 // ---- 훅 ----
 
+// 「오늘 시작」 이 코디네이터에게 보내는 요청. 하루 작업을 시작할 때 쓴다.
+export const START_PROMPT = [
+  '오늘 작업을 시작하자.',
+  '1. .omc/board.json 을 오늘 기준으로 갱신하고 완료(done) 항목은 비운다.',
+  '2. 세 저장소(fos-assistant, fos-home-infra, fos-agents)의 남은 워크트리, 세션, 머지된 브랜치를 orch-overlay 의 훑기 규칙대로 정리한다.',
+  '3. orchestration 감시(orch-watch)가 꺼져 있으면 다시 띄우고, 쌓인 worker 보고를 처리한다.',
+  '4. 열린 PR 의 CI 와 리뷰 상태, 막힌 것, 내가 정해야 할 것을 짧게 정리해 보고하고, 정할 것은 바로 물어본다.',
+].join('\n')
+
+function startToday($) {
+  void $.prompt.submit({ text: START_PROMPT })
+  $.ui.toast('오늘 시작 요청을 보냈어요')
+}
+
 export function register(on) {
   on('session.start', async ($, e, next) => {
     await loadFile($)
@@ -343,6 +357,7 @@ export function register(on) {
     $.clock.every(LIVE_MS, () => loadLive($))
     loadLive($)
     await $.command.register({ name: 'board', description: '작업 현황 창 열기', immediate: true })
+    await $.command.register({ name: 'board-start', description: '오늘 작업 시작 요청 보내기(board 갱신, 정리, 보고)', immediate: true })
     return next(e)
   })
 
@@ -350,6 +365,11 @@ export function register(on) {
     await loadFile($)
     loadLive($)
     await $.ui.open({ id: PANE, title: '작업 현황', closeOnEscape: true })
+    return {}
+  })
+
+  on('command.run', { command: 'board-start' }, async ($) => {
+    startToday($)
     return {}
   })
 
@@ -503,6 +523,13 @@ export function register(on) {
               hotkey: 'r',
               plain: true,
               onPress: () => { loadLive($) },
+            }),
+            Button({
+              key: 'start-today',
+              label: '오늘 시작',
+              hotkey: 's',
+              plain: true,
+              onPress: () => { startToday($) },
             }),
             Button({
               key: 'toggle-done',

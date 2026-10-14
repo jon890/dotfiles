@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, stepProgress, itemProgress, detailLines, mainRoot, mergeVerdict, sortPullRequests, parseQuestions, questionText } from '../hooks/register.js'
+import { parseWorkers, countQuestions, parsePullRequests, prFor, checkSummary, statusLine, workerFor, unmappedWorkers, workerLine, progressBar, stepProgress, itemProgress, detailLines, mainRoot, mergeVerdict, sortPullRequests, parseQuestions, questionText, START_PROMPT } from '../hooks/register.js'
 
 test('일하는 worker 만 고르고 워크트리 이름을 꺼낸다', () => {
   const stdout = JSON.stringify({ result: { workers: [
@@ -100,4 +100,11 @@ test('답을 기다리는 질문의 본문과 보낸 worker 를 꺼낸다', () =
   expect(questions[0].text).toBe('A 와 B 중 무엇으로 할까요?')
   expect(questionText('가'.repeat(10), 5)).toBe('가가가가…')
   expect(parseQuestions('깨진 {"type": "question"').length).toBe(1)
+})
+
+test('오늘 시작 요청은 board 갱신, 완료 비우기, 정리, 감시, 보고를 모두 담는다', () => {
+  expect(START_PROMPT).toContain('완료(done) 항목은 비운다')
+  expect(START_PROMPT).toContain('훑기 규칙')
+  expect(START_PROMPT).toContain('orch-watch')
+  expect(START_PROMPT).toContain('정할 것은 바로 물어본다')
 })
