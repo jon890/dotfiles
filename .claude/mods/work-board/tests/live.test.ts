@@ -104,7 +104,9 @@ test('답을 기다리는 질문의 본문과 보낸 worker 를 꺼낸다', () =
 
 test('오늘 시작 요청은 board 갱신, 완료 비우기, 정리, 감시, 보고를 모두 담는다', () => {
   expect(START_PROMPT).toContain('완료(done) 항목은 비운다')
-  expect(START_PROMPT).toContain('훑기 규칙')
+  expect(START_PROMPT).toContain('현재 저장소의 남은 워크트리')
+  expect(START_PROMPT).toContain('.claude/orch-overlay.md 의 정리 규칙')
+  expect(START_PROMPT).not.toMatch(/fos-|세 저장소/)
   expect(START_PROMPT).toContain('orch-watch')
   expect(START_PROMPT).toContain('정할 것은 바로 물어본다')
 })

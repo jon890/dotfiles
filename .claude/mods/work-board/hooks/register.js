@@ -340,7 +340,7 @@ function ago(at) {
 export const START_PROMPT = [
   '오늘 작업을 시작하자.',
   '1. .omc/board.json 을 오늘 기준으로 갱신하고 완료(done) 항목은 비운다.',
-  '2. 세 저장소(fos-assistant, fos-home-infra, fos-agents)의 남은 워크트리, 세션, 머지된 브랜치를 orch-overlay 의 훑기 규칙대로 정리한다.',
+  '2. 현재 저장소의 남은 워크트리, 세션, 머지된 브랜치를 그 저장소 .claude/orch-overlay.md 의 정리 규칙대로 정리한다.',
   '3. orchestration 감시(orch-watch)가 꺼져 있으면 다시 띄우고, 쌓인 worker 보고를 처리한다.',
   '4. 열린 PR 의 CI 와 리뷰 상태, 막힌 것, 내가 정해야 할 것을 짧게 정리해 보고하고, 정할 것은 바로 물어본다.',
 ].join('\n')

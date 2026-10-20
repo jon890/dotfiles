@@ -1,6 +1,6 @@
 {
   "name": "work-board",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "orca worker, 답을 기다리는 질문, 열린 PR 과 CI, 수동 작업 현황(.omc/board.json)을 /board 창과 상태 줄에 보여 준다",
   "author": {
     "name": "bifos"
