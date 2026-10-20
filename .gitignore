@@ -54,6 +54,9 @@
 !.claude/references/
 .claude/references/*
 !.claude/references/*.md
+!.claude/references/assets/
+.claude/references/assets/*
+!.claude/references/assets/*.html
 !.claude/scripts/
 .claude/scripts/*
 !.claude/scripts/*.sh
