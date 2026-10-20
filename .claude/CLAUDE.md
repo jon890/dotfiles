@@ -76,6 +76,11 @@ mermaid 그림은 따로 말이 없으면 `~/.claude/references/mermaid-style.md
 개인 서비스(`*.fosworld.co.kr`, 개인 Google 계정으로 로그인하는 사이트)는 `BROWSER_EGO_PURPOSE=personal` 로 연다.
 기본 프로필은 회사 프로필이라 개인 서비스의 로그인 세션이 없다.
 
+**ego 브라우저(`browser-driver`)는 에이전트가 브라우저를 조작하거나 읽을 때만 쓴다.**
+사용자가 읽을 미리보기 HTML(시각화, 화면 샘플, content-preview 결과)은 `open <파일>` 로 시스템 기본 브라우저에 띄운다.
+미리보기 HTML 은 tmp 나 scratchpad 가 아니라 그 저장소의 `.omc/previews/` 에 둔다. 재부팅에도 남고 git 이 무시한다.
+이 폴더는 끝난 `.omc` 산출물 정리 대상이 아니다. 사용자가 지우라고 할 때만 지운다.
+
 ## 셸
 
 zsh 와 이 머신 환경에서 실측한 것이다.
