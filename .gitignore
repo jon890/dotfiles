@@ -62,6 +62,9 @@
 !.claude/scripts/*.sh
 !.claude/scripts/*.py
 !.claude/scripts/browser-driver
+!.claude/hud/
+.claude/hud/*
+!.claude/hud/omc-hud-wrap.sh
 
 # Codex 전역 instruction
 !.codex/
