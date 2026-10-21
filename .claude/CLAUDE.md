@@ -79,7 +79,7 @@ mermaid 그림은 따로 말이 없으면 `~/.claude/references/mermaid-style.md
 **ego 브라우저(`browser-driver`)는 에이전트가 브라우저를 조작하거나 읽을 때만 쓴다.**
 사용자가 읽을 미리보기 HTML(시각화, 화면 샘플, content-preview 결과)은 `open <파일>` 로 시스템 기본 브라우저에 띄운다.
 미리보기 HTML 은 tmp 나 scratchpad 가 아니라 그 저장소의 `.omc/previews/` 에 둔다. 재부팅에도 남고 git 이 무시한다.
-이 폴더는 끝난 `.omc` 산출물 정리 대상이 아니다. 사용자가 지우라고 할 때만 지운다.
+끝난 미리보기는 정리 스크립트가 지우지 않고 휴지통 폴더로 옮긴다. 보드나 `.omc/previews/.keep` 에 이름이 없고 3일 넘게 바뀌지 않은 것이 대상이다. 남길 것은 `.keep` 에 한 줄에 하나씩 적는다(사용자 결정 2026-10-21).
 
 ## 셸
 
