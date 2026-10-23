@@ -66,6 +66,9 @@
 !.claude/hud/
 .claude/hud/*
 !.claude/hud/omc-hud-wrap.sh
+!.claude/bin/
+.claude/bin/*
+!.claude/bin/gh-rotate-secret
 
 # Codex 전역 instruction
 !.codex/
