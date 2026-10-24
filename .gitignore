@@ -69,6 +69,10 @@
 !.claude/bin/
 .claude/bin/*
 !.claude/bin/gh-rotate-secret
+!.claude/bin/docker-prune-daily
+!.claude/launchd/
+.claude/launchd/*
+!.claude/launchd/*.plist
 
 # Codex 전역 instruction
 !.codex/

@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""매일 다시 만들 수 있는 Docker 데이터만 안전하게 정리한다.
+
+usage: docker-prune-daily [--dry-run | --install | --uninstall]
+  --dry-run    Docker 를 호출하지 않고 정리 명령만 출력한다
+  --install    LaunchAgent plist 를 복사하고 현재 GUI 세션에 등록한다
+  --uninstall  현재 GUI 세션에서 해제하고 설치된 plist 를 지운다
+
+빌드 캐시와 dangling 이미지, 이름 없는 미사용 볼륨만 정리한다. 이름 있는
+이미지와 볼륨은 프로젝트에서 재사용할 수 있고, 컨테이너와 네트워크는
+실행 중인 개발 환경을 바꿀 수 있으므로 건드리지 않는다.
+
+종료 코드: 0 정리 완료 또는 Docker 꺼짐, 1 정리 명령 실패, 2 인자 오류
+"""
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+LOG_FILE = Path.home() / "Library" / "Logs" / "docker-prune-daily.log"
+PLIST_NAME = "com.jon890.docker-prune-daily.plist"
+PLIST_SOURCE = Path(__file__).resolve().parents[1] / "launchd" / PLIST_NAME
+PLIST_DESTINATION = Path.home() / "Library" / "LaunchAgents" / PLIST_NAME
+PRUNE_COMMANDS = (
+    ("docker", "builder", "prune", "-f", "--filter", "until=72h"),
+    ("docker", "image", "prune", "-f"),
+    ("docker", "volume", "prune", "-f"),
+)
+
+
+def log(message):
+    line = str(message)
+    try:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with LOG_FILE.open("a", encoding="utf-8") as stream:
+            stream.write(line + "\n")
+    except OSError as error:
+        print(f"로그 파일에 쓸 수 없습니다: {error}", file=sys.stderr)
+
+
+def run(command):
+    try:
+        return subprocess.run(command, text=True, capture_output=True, check=False)
+    except OSError as error:
+        return subprocess.CompletedProcess(command, 127, "", str(error))
+
+
+def record_command(command, result):
+    log("$ " + " ".join(command))
+    if result.stdout.strip():
+        log(result.stdout.rstrip())
+    if result.stderr.strip():
+        log(result.stderr.rstrip())
+
+
+def record_disk_usage():
+    for command in (("docker", "system", "df"),
+                    ("docker", "run", "--rm", "alpine", "df", "-h", "/")):
+        result = run(command)
+        record_command(command, result)
+        if result.returncode != 0:
+            log(f"요약 정보를 가져오지 못했습니다 (종료 코드 {result.returncode}).")
+
+
+def current_gui_domain():
+    return f"gui/{os.getuid()}"
+
+
+def install():
+    if not PLIST_SOURCE.is_file():
+        log(f"plist 를 찾을 수 없습니다: {PLIST_SOURCE}")
+        return 1
+    PLIST_DESTINATION.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(PLIST_SOURCE, PLIST_DESTINATION)
+    result = run(("launchctl", "bootstrap", current_gui_domain(), str(PLIST_DESTINATION)))
+    record_command(("launchctl", "bootstrap", current_gui_domain(), str(PLIST_DESTINATION)), result)
+    return result.returncode
+
+
+def uninstall():
+    command = ("launchctl", "bootout", current_gui_domain(), str(PLIST_DESTINATION))
+    result = run(command)
+    record_command(command, result)
+    if result.returncode != 0:
+        return result.returncode
+    try:
+        PLIST_DESTINATION.unlink(missing_ok=True)
+    except OSError as error:
+        log(f"설치된 plist 를 지우지 못했습니다: {error}")
+        return 1
+    return 0
+
+
+def parse_args(argv):
+    if len(argv) > 1 or (argv and argv[0] not in ("--dry-run", "--install", "--uninstall", "-h", "--help")):
+        print(__doc__.strip(), file=sys.stderr)
+        return None
+    if argv and argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return "help"
+    return argv[0] if argv else "run"
+
+
+def main(argv=None):
+    mode = parse_args(sys.argv[1:] if argv is None else argv)
+    if mode is None:
+        return 2
+    if mode == "help":
+        return 0
+    if mode == "--dry-run":
+        for command in PRUNE_COMMANDS:
+            print(" ".join(command))
+        return 0
+    if mode == "--install":
+        return install()
+    if mode == "--uninstall":
+        return uninstall()
+
+    info = run(("docker", "info"))
+    if info.returncode != 0:
+        log("Docker 를 사용할 수 없어 정리를 건너뜁니다 (Colima 가 꺼져 있을 수 있습니다).")
+        return 0
+
+    log("Docker 정리 전 디스크 사용량")
+    record_disk_usage()
+    for command in PRUNE_COMMANDS:
+        result = run(command)
+        record_command(command, result)
+        if result.returncode != 0:
+            log(f"정리 명령 실패 (종료 코드 {result.returncode}).")
+            return 1
+    log("Docker 정리 후 디스크 사용량")
+    record_disk_usage()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
