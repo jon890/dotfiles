@@ -29,6 +29,12 @@ Claude 는 Opus 5.5, Sonnet 5.5, Haiku 5.5 만 쓴다. Claude Fable 과 `gpt-6-a
 
 예외로, `mac-cleanup` 스킬에서 사용자가 묶음으로 승인한 머지된 로컬 브랜치는 다른 저장소의 것도 지운다. 세션, 터미널, 워크트리는 예외에 들지 않는다(사용자 결정 2026-10-23).
 
+### e2e 테스트는 마지막에 한 번만 돌린다
+
+**phase 로 나눈 구현에서 e2e(브라우저) 테스트는 phase 마다 돌리지 않고, 모든 phase 구현을 마친 뒤 한 번만 돌린다(사용자 결정 2026-10-24).**
+phase 의 검증은 단위 테스트, 통합 테스트, 정적 검사까지다. e2e 코드 수정은 그 phase 에 넣는다.
+e2e 스택을 phase 마다 빌드하면 시간과 Docker 디스크가 많이 든다. 실제로 phase 마다 돌리다 배포가 늦어졌다.
+
 ### 사용자 지시는 문서에 남긴다
 
 사용자가 정한 규칙은 OMC project memory(`.omc/project-memory.json`)와 notepad 에 남기지 않는다.
