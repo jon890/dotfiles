@@ -35,6 +35,12 @@ Claude 는 Opus 5.5, Sonnet 5.5, Haiku 5.5 만 쓴다. Claude Fable 과 `gpt-6-a
 phase 의 검증은 단위 테스트, 통합 테스트, 정적 검사까지다. e2e 코드 수정은 그 phase 에 넣는다.
 e2e 스택을 phase 마다 빌드하면 시간과 Docker 디스크가 많이 든다. 실제로 phase 마다 돌리다 배포가 늦어졌다.
 
+### GitHub Actions runner 는 저장소 공개 여부로 고른다
+
+**공개 저장소의 workflow 는 GitHub-hosted runner 를 쓰고, 홈서버 self-hosted runner 는 비공개 저장소에만 쓴다(사용자 결정 2026-10-24).**
+공개 저장소는 GitHub-hosted runner 를 무료로 쓴다. 홈서버 runner 는 운영 서비스와 CPU, 디스크를 함께 쓴다.
+공개 여부는 `gh repo view <owner>/<repo> --json visibility` 로 확인한다.
+
 ### 사용자 지시는 문서에 남긴다
 
 사용자가 정한 규칙은 OMC project memory(`.omc/project-memory.json`)와 notepad 에 남기지 않는다.
