@@ -74,6 +74,19 @@
 .claude/launchd/*
 !.claude/launchd/*.plist
 
+# 에이전트 공통 개인 지침 원본 (.claude/CLAUDE.md 가 가져오고 .codex/AGENTS.md 는 스크립트가 만든다)
+!.agents/
+.agents/*
+!.agents/personal-rules.md
+
+# 지침 동기화 스크립트와 테스트
+!scripts/
+scripts/*
+!scripts/sync-agent-rules.py
+!scripts/tests/
+scripts/tests/*
+!scripts/tests/test_sync_agent_rules.py
+
 # Codex 전역 instruction
 !.codex/
 .codex/*
