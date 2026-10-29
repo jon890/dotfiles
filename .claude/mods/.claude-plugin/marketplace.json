@@ -1,7 +1,0 @@
-{
-  "name": "local-mods",
-  "owner": { "name": "bifos" },
-  "plugins": [
-    { "name": "work-board", "source": "./work-board", "description": "코디네이터 작업 현황 창 (/board)" }
-  ]
-}

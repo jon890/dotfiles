@@ -1,4 +1,0 @@
-{
-  "description": "work-board hooks module",
-  "modules": ["./register.js"]
-}
