@@ -124,3 +124,11 @@ scripts/tests/*
 !.gradle/init.d/
 .gradle/init.d/*
 !.gradle/init.d/*.init.gradle.kts
+# init 스크립트가 읽는 jar 를 만드는 Java 프로젝트. 받은 뒤 그 폴더에서 ./gradlew installJar 로 jar 를 만든다
+!.gradle/docker-test-slots/
+!.gradle/docker-test-slots/**
+.gradle/docker-test-slots/build/
+.gradle/docker-test-slots/.gradle/
+.gradle/docker-test-slots/.kotlin/
+.gradle/docker-test-slots/docker-test-slots.jar
+.gradle/docker-test-slots/docker-test-slots.jar.tmp
