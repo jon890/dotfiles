@@ -47,7 +47,7 @@ grep -n '^SHARED_' ~/personal/fos-skills/scripts/export-to-team.sh
 | 원본 | 팀 저장소의 사본 | 팀 저장소에서 싣는 곳 |
 | --- | --- | --- |
 | `content-preview`, `korean-check` | `plugins/<플러그인>/skills/<이름>/` | 팀 저장소의 플러그인. 개인 공용 플러그인은 이 둘을 싣지 않는다 |
-| `planning`, `build-with-teams`, `docs-check`, `review-fix` | `skills/<이름>/` | 기존 링크 설치. 플러그인에 없다 |
+| `planning`, `build-with-teams`, `docs-check`, `review-fix`, `presentation` | `skills/<이름>/` | 기존 링크 설치. 플러그인에 없다 |
 | `tools/browser-driver` | `tools/browser-driver/` | 팀 저장소의 플러그인이 링크로 싣는다 |
 
 내보내기 스크립트는 `skills/<이름>` 으로 쓴다.
@@ -85,7 +85,7 @@ cd ~/personal/fos-skills
 | --- | --- | --- |
 | 팀 양식과 사내 시스템 스킬 | 팀 저장소 | `plugins/<플러그인>/skills/<이름>/`. 목록은 `claude plugin list` 와 팀 저장소 문서로 본다 |
 | `harness-cleanup`, `pr-review` | 개인 공용 | `~/personal/fos-skills/<이름>/` |
-| `presentation`, `meeting-note` | 개인 로컬 | `~/.claude/skills/<이름>/` |
+| `meeting-note` | 개인 로컬 | `~/.claude/skills/<이름>/` |
 
 개인 로컬 스킬은 여러 번 써서 절차가 자리를 잡으면 개인 공용으로 올린다.
 
