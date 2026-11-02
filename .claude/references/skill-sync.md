@@ -47,7 +47,7 @@ grep -n '^SHARED_' ~/personal/fos-skills/scripts/export-to-team.sh
 | 원본 | 팀 저장소의 사본 | 팀 저장소에서 싣는 곳 |
 | --- | --- | --- |
 | `content-preview`, `korean-check` | `plugins/<플러그인>/skills/<이름>/` | 팀 저장소의 플러그인. 개인 공용 플러그인은 이 둘을 싣지 않는다 |
-| `planning`, `build-with-teams`, `docs-check`, `review-fix`, `presentation` | `skills/<이름>/` | 기존 링크 설치. 플러그인에 없다 |
+| `spec`, `planning`, `build-with-teams`, `verify`, `docs-consolidate`, `docs-check`, `review-fix`, `presentation` | `skills/<이름>/` | 기존 링크 설치. 플러그인에 없다 |
 | `tools/browser-driver` | `tools/browser-driver/` | 팀 저장소의 플러그인이 링크로 싣는다 |
 
 내보내기 스크립트는 `skills/<이름>` 으로 쓴다.
