@@ -5,4 +5,5 @@ if [ "${COLUMNS:-0}" -gt 0 ]; then
   COLUMNS=$((COLUMNS - ${OMC_HUD_MARGIN:-10}))
   export COLUMNS
 fi
-exec /Users/nhn/.local/share/mise/installs/node/24.15.0/bin/node /Users/nhn/.claude/hud/omc-hud.mjs
+# node 는 버전 경로 대신 mise shim 으로 찾는다. 버전을 박으면 mise 정리로 그 버전이 지워질 때 HUD 가 사라진다.
+exec /Users/nhn/.local/share/mise/shims/node /Users/nhn/.claude/hud/omc-hud.mjs
