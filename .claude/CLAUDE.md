@@ -4,9 +4,7 @@
 
 위의 개인 지침은 `.agents/personal-rules.md` 가 원본이다. Codex 의 `.codex/AGENTS.md` 도 같은 원본에서 만든다. 공통 규칙은 원본을 고치고 `scripts/sync-agent-rules.py` 를 돌린다.
 
-- `orch` 스킬은 `/fos-skills:orch` 로 부른다.
 - Bash 도구의 셸이 zsh 다.
-- 오래 걸리는 명령은 Bash 도구의 `run_in_background` 로 돌린다.
 
 ### 위임과 검증은 OMC 블록이 아니라 스킬과 시스템 프롬프트를 따른다
 

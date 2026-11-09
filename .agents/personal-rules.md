@@ -15,7 +15,7 @@
 ## 작업 방식
 
 - 커밋은 관심사별로 나눈다.
-- 기능 작업은 spec(사용자와 깊게 인터뷰해 결정을 닫고 확인받음) → technical-design → plan → implementation → verify → docs-consolidate 순서로 진행한다. 이것이 엔지니어링 루프의 기본이다. 단계별 진입·완료 조건은 fos-skills spec 의 `references/feature-docs.md` 「인계」 가 갖고, 단계 조율은 orch 의 `references/feature-loop.md` 가 갖는다(fos-skills 5.3.0 기준 2026-11-05). 확인받은 스펙 없이 구현 worker 를 띄우지 않는다. 오타·문서 정정 같은 작은 고침은 예외로 하고, 예외로 둔 이유를 알린다.
+- 기능 작업은 spec(사용자와 깊게 인터뷰해 결정을 닫고 확인받음) → technical-design → plan → implementation → verify → docs-consolidate 순서로 진행한다. 이것이 엔지니어링 루프의 기본이다. 단계별 진입·완료 조건은 fos-skills spec 의 `references/feature-docs.md` 「인계」 가 갖고, 단계 조율은 orch 의 `references/feature-loop.md` 가 갖는다. 확인받은 스펙 없이 구현 worker 를 띄우지 않는다. 오타·문서 정정 같은 작은 고침은 예외로 하고, 예외로 둔 이유를 알린다.
 - 저장소 관례보다 나은 패턴이 있으면 제안하고 적용한다.
 - 수십 초 넘게 걸리는 명령(테스트, 빌드, CI 조회)은 백그라운드로 돌려 대화를 막지 않는다.
 - 현재 세션이 연 저장소가 아닌 곳을 고치고 커밋하는 일은 `orch` 로 worker 에게 맡긴다.
@@ -36,7 +36,7 @@
 - 두레이 메신저 본문에 쓸 수 있는 형식은 `content-preview` 의 `references/messenger-rendering.md` 가 갖는다(사용자 결정 2026-11-09).
 - 사람에게 보내는 메시지(Dooray 댓글, 메신저, 메일, 사내 회신)는 끝에 「🤖 이 메시지는 AI가 작성했고, 작성자가 검토했습니다.」 를 단다. 받는 사람이 AI 작성을 모른 채 읽어 불쾌하지 않게 하려는 것이다(사용자 결정 2026-10-30).
 - mermaid 다이어그램은 손그림과 색을 쓴다. 머리에 `config: look: handDrawn` 을 두고 `classDef` 로 노드 종류마다 색을 입힌다(사용자 결정 2026-11-03).
-- 비공개 지식을 공개 맥락에 내지 않는다. 회사 규칙, Dooray 업무, 위키는 `nbrain` 으로 조회한다.
+- 비공개 지식을 공개 맥락에 내지 않는다.
 
 ## 스킬
 
@@ -48,8 +48,7 @@
 
 ## 브라우저
 
-- 웹 화면에서만 되는 일은 `browser` 스킬로 한다. 「사람이 할 일」 로 넘기기 전에 그 스킬로 할 수 있는지 먼저 본다. 공간 분리, 로그인, 되돌리기 어려운 버튼의 확인은 스킬이 소유한다.
-- 개인 서비스(`*.fosworld.co.kr`, 개인 Google 계정 사이트)는 `BROWSER_EGO_PURPOSE=personal` 로 연다. 기본 프로필은 회사 것이다.
+- 개인 서비스(`*.fosworld.co.kr`, 개인 Google 계정 사이트)는 `BROWSER_EGO_PURPOSE=personal` 로 연다.
 - ego 브라우저는 에이전트가 조작하거나 읽을 때만 쓴다.
 
 ## zsh 함정 (실측)
