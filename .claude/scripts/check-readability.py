@@ -1,1 +1,1 @@
-../../personal/fos-skills/korean-check/scripts/check-readability.py
+../../personal/fos-skills/export-only-skills/korean-check/scripts/check-readability.py
