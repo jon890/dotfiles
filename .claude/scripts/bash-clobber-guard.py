@@ -17,6 +17,13 @@ Claude Code 의 Bash 도구는 자기 셸에 `noclobber` 를 켠다.
 대상 경로는 판정하지 않는다. `cd` 뒤의 상대경로나 따옴표로 감싼 대상을
 실행 전에 정확히 풀 수 없어서, 경로를 판정하던 거절 방식은 오탐을 냈다.
 
+`2>&1` 같은 fd 복제와 `/dev/null` 로 가는 리다이렉트만 있으면 바꾸지 않는다.
+noclobber 와 상관이 없는데, 입력을 바꾸면 auto mode 분류기가 판정하지 못해 호출이 한 번 거부된다.
+
+zsh 는 따옴표 없는 `=` 로 시작하는 낱말을 명령 경로로 바꾼다(EQUALS).
+`echo =====` 가 `==== not found` 로 실패하므로, 그런 낱말이 보이면 `setopt no_equals;` 를 붙인다.
+명령이 이미 접두어로 시작하면 다시 붙이지 않는다. 처음부터 접두어를 붙여 보내면 입력이 바뀌지 않는다.
+
 PreToolUse 훅으로 쓴다. `updatedInput` 만 내고 `permissionDecision` 은 내지 않는다.
 권한 판정은 원래 흐름에 맡긴다. 판정하지 못하면 아무것도 내지 않는다.
 """
@@ -28,14 +35,22 @@ import re
 import sys
 
 PREFIX = "set +o noclobber; "
+EQUALS_PREFIX = "setopt no_equals; "
 
 # heredoc 본문을 지우기 위한 시작 표식이다.
 # `<<EOF`, `<<-EOF`, `<<'EOF'`, `<<"EOF"` 를 모두 잡는다.
 HEREDOC_START = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 
 # 출력 리다이렉트다. `=>` 와 `->` 는 산문과 코드의 화살표라 제외한다.
-# `2>&1` 처럼 파일이 아닌 것도 걸리지만, 접두어는 해가 없으므로 가르지 않는다.
 REDIRECT = re.compile(r"(?<![=-])>")
+
+# 파일에 쓰지 않는 리다이렉트다. noclobber 와 상관이 없어 판정 전에 지운다.
+# `2>&1`, `>&2`, `2>&-`, `&>/dev/null`, `2>/dev/null`, `>>/dev/null` 이 해당한다.
+NON_FILE_REDIRECT = re.compile(r"\d*>&(?:\d+|-)|&>>?\s*/dev/null|\d*>>?\s*/dev/null")
+
+# 따옴표 밖에서 `=` 로 시작하고 뒤에 글자가 더 있는 낱말이다. 낱말 하나뿐인 `=`(`[ a = b ]`)와
+# 낱말 가운데의 `=`(`a=b`, `--opt=v`)는 걸리지 않는다.
+EQUALS_WORD = re.compile(r"(?:^|(?<=[\s;|&(]))=\S")
 
 
 def strip_heredocs(command: str) -> str:
@@ -66,10 +81,35 @@ def strip_quoted(text: str) -> str:
     return re.sub(r"'[^']*'", "''", text)
 
 
-def needs_prefix(command: str) -> bool:
-    if command.startswith(PREFIX):
-        return False
-    return bool(REDIRECT.search(strip_quoted(strip_heredocs(command))))
+def strip_double_quoted(text: str) -> str:
+    """큰따옴표 구간을 지운다. 그 안의 `=` 는 EQUALS 로 바뀌지 않는다."""
+    return re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
+
+
+def peel_prefixes(command: str) -> tuple[set[str], str]:
+    """명령 앞에 이미 붙은 접두어를 떼어 낸다."""
+    found: set[str] = set()
+    rest = command
+    while True:
+        for prefix in (PREFIX, EQUALS_PREFIX):
+            if rest.startswith(prefix):
+                found.add(prefix)
+                rest = rest[len(prefix):]
+                break
+        else:
+            return found, rest
+
+
+def needed_prefixes(command: str) -> list[str]:
+    """붙여야 할 접두어를 붙일 차례대로 돌려준다. 없으면 빈 목록이다."""
+    present, rest = peel_prefixes(command)
+    body = strip_quoted(strip_heredocs(rest))
+    needed: list[str] = []
+    if EQUALS_PREFIX not in present and EQUALS_WORD.search(strip_double_quoted(body)):
+        needed.append(EQUALS_PREFIX)
+    if PREFIX not in present and REDIRECT.search(NON_FILE_REDIRECT.sub("", body)):
+        needed.append(PREFIX)
+    return needed
 
 
 def main() -> int:
@@ -89,16 +129,17 @@ def main() -> int:
         return 0
 
     try:
-        if not needs_prefix(command):
-            return 0
+        prefixes = needed_prefixes(command)
     except Exception:
+        return 0
+    if not prefixes:
         return 0
 
     json.dump(
         {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
-                "updatedInput": {**tool_input, "command": PREFIX + command},
+                "updatedInput": {**tool_input, "command": "".join(prefixes) + command},
             }
         },
         sys.stdout,
