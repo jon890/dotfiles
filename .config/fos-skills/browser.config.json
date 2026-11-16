@@ -1,0 +1,10 @@
+{
+  "driver": "ego",
+  "previewDriver": "orca",
+  "cdpPort": 9222,
+  "egoProfiles": {
+    "default": "Profile 2",
+    "work": "Profile 2",
+    "personal": "Default"
+  }
+}

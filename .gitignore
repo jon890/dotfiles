@@ -44,6 +44,11 @@
 .config/ghostty/*
 !.config/ghostty/config
 
+# fos-skills 개인 설정. inbox.json 은 사내 주소가 있어 추적하지 않는다
+!.config/fos-skills/
+.config/fos-skills/*
+!.config/fos-skills/browser.config.json
+
 # Claude Code 전역 instruction
 !.claude/
 .claude/*
