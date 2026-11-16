@@ -54,6 +54,9 @@
 .claude/*
 !.claude/CLAUDE.md
 !.claude/*-overlay.md
+!.claude/overlays/
+.claude/overlays/*
+!.claude/overlays/*.md
 !.claude/rules/
 .claude/rules/*
 !.claude/rules/*.md
