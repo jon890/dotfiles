@@ -1,1 +1,1 @@
-../../personal/fos-skills/korean-check/references/korean-style.md
+../../personal/fos-skills/export-only-skills/korean-check/references/korean-style.md

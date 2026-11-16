@@ -1,1 +1,0 @@
-../../personal/fos-skills/export-only-skills/korean-check/scripts/korean-style-check.py

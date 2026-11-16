@@ -23,7 +23,7 @@
 
 - 다른 저장소의 저장소 로컬 스킬을 가리키는 링크는 링크 대상 저장소에서 고친다.
 - Orca 가 거는 `../../.agents/skills/` 링크, `ego-browser` 링크, `synced/` 디렉터리는 외부가 관리하므로 고치지 않는다. `synced/` 는 실체지만 개인 로컬 스킬이 아니다.
-- `~/.claude/scripts/` 와 `~/.claude/rules/` 의 링크는 스킬 링크가 아니라 체크아웃 안의 검사기와 규칙 파일이다. 링크 목록과 옮길 때의 처리는 `~/personal/fos-skills/docs/code-architecture.md` 의 「저장소 밖에서 이 저장소를 가리키는 경로」 가 소유한다.
+- `~/.claude/rules/` 의 링크는 스킬 링크가 아니라 체크아웃 안의 규칙 파일이다. 링크 목록과 옮길 때의 처리는 `~/personal/fos-skills/docs/code-architecture.md` 의 「저장소 밖에서 이 저장소를 가리키는 경로」 가 소유한다.
 
 지금 무엇이 설치돼 있는지는 아래 두 명령으로 본다.
 
