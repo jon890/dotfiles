@@ -35,7 +35,6 @@ if command -v fastfetch >/dev/null 2>&1; then
 fi
 
 export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
-export PATH="$HOME/.local/bin:$PATH"
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
@@ -63,3 +62,5 @@ if (( ${+commands[zoxide]} )); then
   alias cd="z"
   alias cdi="zi"
 fi
+
+export PATH="$HOME/.local/bin:$PATH"
