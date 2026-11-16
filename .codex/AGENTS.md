@@ -24,7 +24,7 @@ OMX 관리 영역은 설치 도구가 갱신하므로 직접 수정하지 않는
 ## 작업 방식
 
 - 커밋은 관심사별로 나눈다.
-- 기능 작업은 spec(사용자와 깊게 인터뷰해 결정을 닫고 확인받음) → technical-design → plan → implementation → verify → docs-consolidate 순서로 진행한다. 이것이 엔지니어링 루프의 기본이다. 단계별 진입·완료 조건은 fos-skills spec 의 `references/feature-docs.md` 「인계」 가 갖고, 단계 조율은 orch 의 `references/feature-loop.md` 가 갖는다. 확인받은 스펙 없이 구현 worker 를 띄우지 않는다. 오타·문서 정정 같은 작은 고침은 예외로 하고, 예외로 둔 이유를 알린다.
+- 기능 작업은 spec(사용자와 깊게 인터뷰해 결정을 닫고 확인받음) → technical-design → plan → implementation → verify → docs-consolidate 순서로 진행한다. 이것이 엔지니어링 루프의 기본이다. 단계별 진입·완료 조건은 `~/personal/fos-skills/skills/spec/references/feature-docs.md` 의 「인계」 가 갖고, 단계 조율은 `~/personal/fos-skills/skills/orch/references/feature-loop.md` 가 갖는다. 확인받은 스펙 없이 구현 worker 를 띄우지 않는다. 오타·문서 정정 같은 작은 고침은 예외로 하고, 예외로 둔 이유를 알린다.
 - 저장소 관례보다 나은 패턴이 있으면 제안하고 적용한다.
 - 수십 초 넘게 걸리는 명령(테스트, 빌드, CI 조회)은 백그라운드로 돌려 대화를 막지 않는다.
 - 현재 세션이 연 저장소가 아닌 곳을 고치고 커밋하는 일은 `orch` 로 worker 에게 맡긴다.
@@ -40,10 +40,10 @@ OMX 관리 영역은 설치 도구가 갱신하므로 직접 수정하지 않는
 
 ## 문서
 
-- 한국어 산출물은 내보내기 직전에 `korean-check` 로 점검한다. GitHub PR 은 한국어가 기본이다.
+- GitHub PR 은 한국어가 기본이다.
 - 원본이 바뀌면 함께 낡는 개수(도메인 수, 명령 수, 「다음 세 가지」)를 문서와 테스트에 적지 않는다. 원본을 가리키고, 테스트는 형식과 동작을 본다. 동작 규칙의 값(최대 1000건)과 실측 기록(표본 12개)은 둔다.
 - 업무 글과 사람에게 보내는 메시지(Dooray 업무·댓글, 메신저, 메일, 사내 회신)는 본문을 쓰기 전에 `~/.claude/references/work-writing-persona.md` 를 읽는다. 호칭 규칙도 그 문서가 갖는다.
-- 두레이 메신저 본문에 쓸 수 있는 형식은 `content-preview` 의 `references/messenger-rendering.md` 가 갖는다(사용자 결정 2026-11-09).
+- 두레이 메신저 본문에 쓸 수 있는 형식은 `~/personal/fos-skills/export-only-skills/content-preview/references/messenger-rendering.md` 가 갖는다(사용자 결정 2026-11-09).
 - 사람에게 보내는 메시지(Dooray 댓글, 메신저, 메일, 사내 회신)는 끝에 「🤖 이 메시지는 AI가 작성했고, 작성자가 검토했습니다.」 를 단다. 받는 사람이 AI 작성을 모른 채 읽어 불쾌하지 않게 하려는 것이다(사용자 결정 2026-10-30).
 - mermaid 다이어그램은 손그림과 색을 쓴다. 머리에 `config: look: handDrawn` 을 두고 `classDef` 로 노드 종류마다 색을 입힌다(사용자 결정 2026-11-03).
   - 두레이 위키·업무에는 그림을 이미지로 바꿔 올리지 않고 mermaid 코드 블록으로 쓴다. 이미지로 바꾸면 고치기 어렵고 어색해 보인다(사용자 결정 2026-11-10).

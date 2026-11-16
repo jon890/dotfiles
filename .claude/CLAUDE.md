@@ -4,8 +4,6 @@
 
 위의 개인 지침은 `.agents/personal-rules.md` 가 원본이다. Codex 의 `.codex/AGENTS.md` 도 같은 원본에서 만든다. 공통 규칙은 원본을 고치고 `scripts/sync-agent-rules.py` 를 돌린다.
 
-- Bash 도구의 셸이 zsh 다.
-
 ### 위임과 검증은 OMC 블록이 아니라 스킬과 시스템 프롬프트를 따른다
 
 **하위 에이전트를 띄울지는 시스템 프롬프트의 Agent 도구 기준과 각 스킬의 규칙으로 정한다.**
