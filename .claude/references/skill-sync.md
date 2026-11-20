@@ -44,7 +44,7 @@ cd ~/.claude/skills && for n in *; do printf '%-24s %s\n' "$n" "$(readlink "$n" 
    내보내기의 구조는 `~/personal/fos-skills/docs/code-architecture.md` 의 「팀 저장소 내보내기」, 옵션은 `~/personal/fos-skills/scripts/export-to-team.ts` 머리 주석이 소유한다.
 2. **내보내지 않는 스킬은 그 스킬이 있는 층에서 직접 고친다.** 위 「네 층」 표의 위치가 본체다.
 3. **버전과 변경 이력은 저장소 규칙을 따른다.**
-   fos-skills 는 `docs/contributing.md` 의 「버전과 변경 이력」, 팀 저장소는 `CLAUDE.md` 의 「버전 규칙」 과 「CHANGELOG 작성 규칙」 이 소유한다.
+   fos-skills 는 `~/personal/fos-skills/docs/contributing.md` 의 「버전과 변경 이력」, 팀 저장소는 `CLAUDE.md` 의 「버전 규칙」 과 「CHANGELOG 작성 규칙」 이 소유한다.
 4. **내보내기는 원본이 main 에 머지된 뒤 원본을 고친 쪽이 한다.** 코디네이터가 머지하는 흐름이면 머지 직후 코디네이터가 낸다.
    머지 전에 내보내면 팀 저장소에 main 에 없는 내용이 들어간다. 내보낸 뒤 팀 저장소에서 따로 PR 을 열어야 팀에 전파된다.
 
@@ -63,13 +63,13 @@ claude plugin update nhn-dev@ai-sdt-skills
 claude plugin update ai-sdt@ai-sdt-skills
 ```
 
-머지 전에 고친 내용을 써 보는 방법은 fos-skills `docs/contributing.md` 의 「고치는 동안」 이 소유한다.
+머지 전에 고친 내용을 써 보는 방법은 `~/personal/fos-skills/docs/contributing.md` 의 「고치는 동안」 이 소유한다.
 
 ## 층을 올리고 내릴 때
 
 저장소 로컬과 개인 로컬에서 개인 공용으로, 개인 공용에서 팀 공용으로 올린다.
 올리는 시점은 여러 저장소에서 쓸 만하다고 확인됐을 때, 그리고 팀원도 쓸 만할 때다.
 
-- **개인 공용으로 올릴 때**는 fos-skills `docs/contributing.md` 의 「스킬을 더할 때」 를 따른다. 올린 뒤에는 `~/.claude/skills/<이름>` 의 실체를 지운다. 남기면 둘로 뜬다.
+- **개인 공용으로 올릴 때**는 `~/personal/fos-skills/docs/contributing.md` 의 「스킬을 더할 때」 를 따른다. 올린 뒤에는 `~/.claude/skills/<이름>` 의 실체를 지운다. 남기면 둘로 뜬다.
 - **팀 공용으로 올릴 때**는 이동이 아니라 사본 추가다. `export-to-team.ts` 의 `SHARED_SKILLS` 에 이름을 더하고 내보내면 그때부터 원본과 사본 관계가 된다.
 - **쓰임이 굳지 않은 스킬은 개인 로컬로 내린다.** 개인 공용은 반복해서 쓰는 스킬만 담는 층이라, 손대지 않는 스킬이 섞이면 정리 대상이 흐려진다. fos-skills 의 매니페스트에서 빼고 디렉터리를 `~/.claude/skills/<이름>` 으로 옮긴다.
