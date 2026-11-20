@@ -34,7 +34,8 @@ if command -v fastfetch >/dev/null 2>&1; then
   fastfetch
 fi
 
-export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
+# colima 를 쓰는 머신에서만 그 소켓을 쓴다. 맥북은 Docker Desktop(desktop-linux 컨텍스트)을 쓴다
+[ -S "$HOME/.colima/default/docker.sock" ] && export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
@@ -62,5 +63,8 @@ if (( ${+commands[zoxide]} )); then
   alias cd="z"
   alias cdi="zi"
 fi
+
+# sops 가 age 키를 macOS 기본 자리(~/Library/Application Support/sops/age) 대신 ~/.config/sops/age 에서 읽게 한다. 키가 있는 머신에서만 쓴다
+[ -f "$HOME/.config/sops/age/keys.txt" ] && export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
 export PATH="$HOME/.local/bin:$PATH"
