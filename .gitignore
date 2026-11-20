@@ -70,6 +70,7 @@
 .claude/scripts/*
 !.claude/scripts/*.sh
 !.claude/scripts/*.py
+!.claude/scripts/*.ts
 !.claude/scripts/browser-driver
 !.claude/hud/
 .claude/hud/*
