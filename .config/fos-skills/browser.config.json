@@ -1,6 +1,6 @@
 {
   "driver": "ego",
-  "previewDriver": "orca",
+  "previewDriver": "system",
   "cdpPort": 9222,
   "egoProfiles": {
     "default": "Profile 2",
