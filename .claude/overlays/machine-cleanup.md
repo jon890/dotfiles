@@ -6,4 +6,4 @@
 
 ## 홈서버
 
-fos-home-infra 오버레이: /Users/nhn/personal/fos-home-infra/.claude/machine-cleanup-overlay.md
+fos-home-infra 오버레이: ~/personal/fos-home-infra/.claude/machine-cleanup-overlay.md
