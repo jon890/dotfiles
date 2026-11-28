@@ -22,10 +22,13 @@ def run_hook(command):
         raise AssertionError(result.stderr)
     if not result.stdout:
         return None
-    output = json.loads(result.stdout)["hookSpecificOutput"]["updatedInput"]
-    if output["description"] != "x":
-        raise AssertionError("다른 입력 칸이 바뀌었다")
-    return output["command"]
+    output = json.loads(result.stdout)["hookSpecificOutput"]
+    if output.get("permissionDecision") != "deny" or "updatedInput" in output:
+        raise AssertionError("입력을 고치지 않고 거절해야 한다")
+    reason = output["permissionDecisionReason"]
+    # 안내 문구의 접두어를 꺼내 예전처럼 「접두어 + 원래 명령」 으로 돌려준다.
+    prefix = reason.split("`")[1]
+    return prefix + " " + command
 
 
 class RedirectTests(unittest.TestCase):

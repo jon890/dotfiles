@@ -13,19 +13,20 @@ Claude Code 의 Bash 도구는 자기 셸에 `noclobber` 를 켠다.
 둘 다 종료 코드 1 과 한 줄만 낸다. 쓰기와 검증을 한 명령에 묶으면
 검증이 옛 파일을 읽고 통과를 찍는다.
 
-이 훅은 리다이렉트가 보이는 명령 앞에 `set +o noclobber;` 를 붙여 보통 셸처럼 돌게 한다.
+이 훅은 리다이렉트가 보이는 명령을 거절하고, 앞에 `set +o noclobber;` 를 붙여 다시 보내라고 안내한다.
 대상 경로는 판정하지 않는다. `cd` 뒤의 상대경로나 따옴표로 감싼 대상을
 실행 전에 정확히 풀 수 없어서, 경로를 판정하던 거절 방식은 오탐을 냈다.
 
 `2>&1` 같은 fd 복제와 `/dev/null` 로 가는 리다이렉트만 있으면 바꾸지 않는다.
-noclobber 와 상관이 없는데, 입력을 바꾸면 auto mode 분류기가 판정하지 못해 호출이 한 번 거부된다.
+noclobber 와 상관이 없어 거절할 까닭이 없다.
 
 zsh 는 따옴표 없는 `=` 로 시작하는 낱말을 명령 경로로 바꾼다(EQUALS).
-`echo =====` 가 `==== not found` 로 실패하므로, 그런 낱말이 보이면 `setopt no_equals;` 를 붙인다.
-명령이 이미 접두어로 시작하면 다시 붙이지 않는다. 처음부터 접두어를 붙여 보내면 입력이 바뀌지 않는다.
+`echo =====` 가 `==== not found` 로 실패하므로, 그런 낱말이 보이면 `setopt no_equals;` 를 붙이라고 안내한다.
+명령이 이미 접두어로 시작하면 통과시킨다.
 
-PreToolUse 훅으로 쓴다. `updatedInput` 만 내고 `permissionDecision` 은 내지 않는다.
-권한 판정은 원래 흐름에 맡긴다. 판정하지 못하면 아무것도 내지 않는다.
+PreToolUse 훅으로 쓴다. 입력을 고치지 않고 `permissionDecision: deny` 와 안내 문구만 낸다.
+`updatedInput` 으로 고쳐 쓰면 auto mode 분류기가 「검토 뒤 입력이 바뀜」 으로 매번 한 번 거부해서다.
+판정하지 못하면 아무것도 내지 않는다.
 """
 
 from __future__ import annotations
@@ -135,11 +136,17 @@ def main() -> int:
     if not prefixes:
         return 0
 
+    prefix = "".join(prefixes)
     json.dump(
         {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
-                "updatedInput": {**tool_input, "command": "".join(prefixes) + command},
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    f"명령 앞에 `{prefix.strip()}` 를 붙여 같은 명령을 다시 보낸다. "
+                    "파일에 쓰는 리다이렉트는 noclobber 때문에, `=` 로 시작하는 낱말은 zsh EQUALS 때문에 실패한다. "
+                    "다음부터는 처음부터 붙여 보낸다."
+                ),
             }
         },
         sys.stdout,
